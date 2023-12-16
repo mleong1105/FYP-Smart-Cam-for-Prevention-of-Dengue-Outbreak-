@@ -3,7 +3,7 @@ const checkSession = (req, res, next) => {
   const isAuthenticated = req.session.isAuthenticated || false;
 
   // If not authenticated and not on the login page, redirect to the login page
-  if (!isAuthenticated && req.url !== '/login' && req.url !== '/api/authenticate/accountlogin' && req.url !== '/favicon.ico') {
+  if (!isAuthenticated && req.url !== '/login' && req.url !== '/api/authenticate/accountlogin' && req.url !== '/favicon.ico' && req.url !== '/api/exampleapi/example') {
     console.log(isAuthenticated, req.url)
     res.redirect('/login');
     return;
