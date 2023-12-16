@@ -17,7 +17,7 @@ router.post('/example', async (req, res) => {
             }
 
             console.log('Script output:', stdout);
-            res.status(200).send('Script executed successfully!');
+            res.status(200).send(stdout);
         });
     } catch (error) {
         console.error('Error:', error);
