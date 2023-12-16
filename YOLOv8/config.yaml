@@ -1,0 +1,9 @@
+path: /Users/PC/Desktop/New folder/YOLOv8
+train: images/train
+val: images/validation
+
+# Classes
+names:
+  0: Waste_container
+  1: Tire
+  2: Flowerpot

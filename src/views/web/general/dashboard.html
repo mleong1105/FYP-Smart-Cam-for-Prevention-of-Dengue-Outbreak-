@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>DengueAPP</title>
+        <link rel="stylesheet" href="/VENDOR/BS/css/bootstrap.min.css">
+        <link rel="stylesheet" href="/VENDOR/BSicon/font/bootstrap-icons.min.css">
+        <link rel="stylesheet" href="/VENDOR/MosquitoShield/css/style.css">
+    </head>
+    <body>
+      <div class="wrapper">
+        <div id="navbarContainer"></div>
+        <div class="container">
+          <h2 class="container-title pb-5">Dashboard</h2>
+          <div class="container-content">
+            <div class="accordion mb-3">
+              <div class="accordion-item">
+                <h3 class="accordion-header" id="datalogaccord">
+                  <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#datalog" aria-expanded="true" aria-controls="datalog">
+                    Data Log
+                  </button>
+                </h3>
+                <div id="datalog" class="accordion-collapse collapse show" aria-labelledby="datalog">
+                  <div class="accordion-body">
+                    <!-- Content for Accordion 1 -->
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="accordion mb-3">
+              <div class="accordion-item">
+                <h3 class="accordion-header" id="table2accord">
+                  <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#table2" aria-expanded="true" aria-controls="table2">
+                    Data Log
+                  </button>
+                </h3>
+                <div id="table2" class="accordion-collapse collapse" aria-labelledby="table2">
+                  <div class="accordion-body">
+                    <!-- Content for Accordion 1 -->
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="accordion mb-3">
+              <div class="accordion-item">
+                <h3 class="accordion-header" id="table3accord">
+                  <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#table3" aria-expanded="true" aria-controls="table3">
+                    Data Log
+                  </button>
+                </h3>
+                <div id="table3" class="accordion-collapse collapse" aria-labelledby="table3">
+                  <div class="accordion-body">
+                    <!-- Content for Accordion 1 -->
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </body>
+
+    <script src="/VENDOR/BS/js/bootstrap.bundle.min.js"></script>
+    <script>
+      fetch('/navbar')
+        .then(response => response.text())
+        .then(data => {
+          const navbarContainer = document.getElementById('navbarContainer');
+          navbarContainer.innerHTML = data;
+          const navbarScript = document.createElement('script');
+          navbarScript.src = "/VENDOR/MosquitoShield/js/navbar.js";
+          document.body.appendChild(navbarScript);
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+    </script>
+</html>

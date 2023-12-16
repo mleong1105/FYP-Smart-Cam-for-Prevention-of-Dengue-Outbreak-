@@ -1,0 +1,2 @@
+Year,Month,Day,Location,Daily.Rainfall.Total.mm,Mean.Temperature.C,Maximum.Temperature.C,MinimumTemperature.C,Mean.Wind.Speed.kmh,Max.Wind.Speed,lag_dengue_cases,lag_temperature,Predicted Dengue Cases
+2023,11,22,Kuala Lumpur,23,27,30,24,7,17,3,27,2.31

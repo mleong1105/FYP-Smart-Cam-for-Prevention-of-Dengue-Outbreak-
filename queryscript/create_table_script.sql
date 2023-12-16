@@ -1,0 +1,23 @@
+CREATE TABLE Account_Admin (
+    UserID INT IDENTITY(1,1) PRIMARY KEY,
+    Username NVARCHAR(50) NOT NULL,
+    Password NVARCHAR(100) NOT NULL,
+    IsActive BIT NOT NULL DEFAULT 1,
+    IsAdmin BIT NOT NULL DEFAULT 0,
+    LastLogin DATETIME
+);
+
+CREATE TABLE Log_AdminLogin (
+    LogID INT IDENTITY(1,1) PRIMARY KEY,
+    UserID INT NOT NULL,
+    LoginTime DATETIME NOT NULL,
+    FOREIGN KEY (UserID) REFERENCES [User](UserID)
+);
+
+CREATE TABLE resource_link (
+    LinkID INT IDENTITY(1, 1) PRIMARY KEY,
+    LinkUrl NVARCHAR(500) NOT NULL,
+    LastScraped DATETIME,
+    Type NVARCHAR(50),
+    Description NVARCHAR(200)
+);

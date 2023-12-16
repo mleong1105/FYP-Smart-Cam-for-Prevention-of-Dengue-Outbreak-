@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>DengueAPP</title>
+        <link rel="stylesheet" href="/VENDOR/BS/css/bootstrap.min.css">
+        <link rel="stylesheet" href="/VENDOR/BSicon/fonts/bootstrap-icons.min.css">
+        <link rel="stylesheet" href="/VENDOR/MosquitoShield/css/style.css">
+        <style>
+            .btn-color{
+                background-color: #0e1c36;
+                color: #fff;
+            }
+
+            .profile-image-pic{
+                height: 150px;
+                width: 150px;
+                object-fit: cover;
+            }
+
+            .cardbody-color{
+                background-color: #ebf2fa;
+            }
+
+            a{
+                text-decoration: none;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="row">
+              <div class="col-md-6 offset-md-3">
+                <h2 class="text-center text-dark mt-5">Mosquito Shield</h2>
+                <div class="text-center mb-5 text-dark">Admin Management System</div>
+                <div class="card my-5">
+        
+                  <form class="card-body cardbody-color p-lg-5" id="loginForm">
+        
+                    <div class="text-center">
+                      <img src="" class="img-fluid profile-image-pic img-thumbnail rounded-circle my-3" alt="profile">
+                    </div>
+        
+                    <div class="mb-3">
+                      <input type="text" class="form-control" id="Username" name="Username" aria-describedby="emailHelp"
+                        placeholder="User Name">
+                    </div>
+                    <div class="mb-3">
+                      <input type="password" class="form-control" id="Password" name="Password" placeholder="Password">
+                    </div>
+                    <div class="text-center"><button type="submit" class="btn btn-color px-5 mb-5 w-100">Login</button></div>
+                    <div id="emailHelp" class="form-text text-center mb-2 text-dark">Forgot Password? <a href="#" class="text-dark fw-bold"> Click Here</a>
+                    </div>
+                  </form>
+                </div>
+        
+              </div>
+            </div>
+          </div>
+          <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalTitle" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="myModalTitle">Login Successful</h5>
+                </div>
+                <div class="modal-body">
+                  <p>Login successful! Redirecting to the dashboard...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+    </body>
+    <script>
+      // Add an event listener to the login form
+      const form = document.getElementById('loginForm');
+      form.addEventListener('submit', handleLogin);
+
+      function handleLogin(event) {
+        event.preventDefault();
+        
+        const username = document.getElementById('Username').value;
+        const password = document.getElementById('Password').value;
+        // Send a request to the backend for login authentication
+        fetch('/api/authenticate/accountlogin', {
+          method: 'POST',
+          body: JSON.stringify({ Username: username, Password: password }),
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+          .then(response => response.json())
+          .catch(error => {
+            console.log('Error', error);
+          })
+            .then(data => {
+              console.log(data)
+              if (data.status === 'success') {
+                // Show the popup
+                const popup = new bootstrap.Modal(document.getElementById('myModal'));
+                popup.show();
+                
+                // Redirect to dashboard.html after a delay
+                setTimeout(() => {
+                  window.location.href = '/dashboard';
+                }, 2000); // Adjust the delay as needed
+              } else {
+                // Handle unsuccessful login
+                window.alert("Account not valid");
+                console.log(data.message);
+              }
+            })
+            .catch(error => {
+              console.log('Error:', error);
+            })
+      }
+    </script>
+
+    <script src="/VENDOR/MosquitoShield/js/navbar.js"></script>
+    <script src="/VENDOR/BS/js/bootstrap.bundle.min.js"></script>
+</html>

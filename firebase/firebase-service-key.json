@@ -1,0 +1,14 @@
+{
+    "type": "service_account",
+    "project_id": "dengueshield",
+    "private_key_id": "3a0ebb99342e6fb9e224c92f58438e2a70b4e51d",
+    "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC+cRfp2BhJk4MM\n6xW84B6VbAfvPHqWd18PyZDUV1zJUj9njm1XvtfJ4uX6Z2zjK8OQsbxCLMNINz7W\nrbkxZRY/RS6PLSgup0j0vpGYuToDl0qN82fW+y84Mh7bo+YPzclq+MCsHri/6Ms2\nDxeNeMpRaBPOS9cNwZ5F2PaYbxjQB6xau2DikwHQkWMuBr1DM/YIrTC5tl0f8z2m\nJCh6JYAK8PVuP8RWIBbbAPtBWQkyCx97GcfuwQ1mnqH9sqogqveoTmvTi+SSeqJ/\nlPMpOMCrpAQKy9tFBm7VsDt2+YSBBu/ZX2YXUtvq5JCj4xf3EhDxkD65CK0XN0qX\nqc50rGlTAgMBAAECggEACgpOBPLyy4TpPq1G3vIqmp0bSVEfyL6wC9XderHFFLYZ\n3VH50MuhISXYaHG7ILpGHA2gIRWuu/1xpNbRhy75qR9IG535Wtr7R9qjiXDmg+7z\ngXVeOaF83/0VzxBJM6HD/I2dzCqYeexXiQOVrcyQT2dpzTwGsVUjt4dUmj0X3/Zt\nnv3UY5tQEOvduC2pv4uhufM4AoT3uNbH1DLdOxqseYlEZD6rDdKGGir1H4YdsTJa\non4xcy3QqGJuTrRYWv+NCaPVwBxB+I1eGYr/itnhPXSfKFdHxE/l0AdkLyOxBHJw\n58whVoP+m9J5Bnfi1xFA1VzzspKeC3rLibdndF3fIQKBgQDooG08Q7jb5JVLozit\nPJZ4ajCnU5XH2EL356JCIjMBPG+okWmVa7Z00qFOOJND6B+eYQAFubJvBvC4RSjl\nZhZoRDXGqMeKTxFtreApoDRKA1N1k1He9F7/CzL1zGIM9lENFi5/u3DcXUbuonxj\nkcH9B8hmFv/E57orWPp+1kOh8wKBgQDRk5iKSq5b/diN8BXAgn5TxplWNV01oRrg\n2EbwroS1vhzi5d8W1iSJEwBibNDkpL2qji2rPGKKNLliDGlJfQ3L7B0iyBnDIT3p\nu84Fhhi4jLzuql6zDlRe0SekozqOcDaefmgGzOXUWLIbGcvd4Nqski7OCTWNDr1Y\nmoBZR7KTIQKBgQDiKp8peVowB/QS3rUK0J4mom99Lymva5Xoej7p92AJcp3IkN/L\nUzbIK8SCTUT4P6UGEZ648ksF4QSG006ogXGFm9OAurWNxcPXE7aeIdDUqJkq9bki\ngAogAt5f1X76xTwV8hvxOebHiLSe7EDteVfWTwvKHdA7u2PoIxEf4edNewKBgD7l\n8jEHCt9XByhKNu0I/Qr9nsWNzISs7lku79OKPRAil57NaK/84wg0qLfheqw0eSv3\n8eLjg5uBCWZQ3USOAJcELRZkQb8bee5tS/7CaSbyLj3e6f8JPO8cDK7PwmI/cVUO\nEQCBfDTHzeRuUI4tztNeKCf0AZttIgy2ifDBoOmhAoGBAMCMFOn3KzckhvkbYe8Z\n2FXbrl8qzzQecG/nszB/QpLyN20YEWrIysqp8RA+YGMtEHW2DHAibPwZ0XgMZvcU\ndrtu0Y/tOtrDFFfgUbiRWQbQh61gHSSmu5wpXzf/0wNMxTgEdg8RfE4C7G+1I3b6\nEURY4zXuYe5vlpoQs8JOBacN\n-----END PRIVATE KEY-----\n",
+    "client_email": "firebase-adminsdk-t817x@dengueshield.iam.gserviceaccount.com",
+    "client_id": "112843878206850814278",
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://oauth2.googleapis.com/token",
+    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-t817x%40dengueshield.iam.gserviceaccount.com",
+    "universe_domain": "googleapis.com"
+}
+  
