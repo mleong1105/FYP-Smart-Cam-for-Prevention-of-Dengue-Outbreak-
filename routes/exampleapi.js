@@ -14,7 +14,7 @@ router.post('/example', async (req, res) => {
             return;
         }
 
-        const scriptPath = path.join(__dirname, '../prediction_model/selenium_scrape/example.py');
+        const scriptPath = path.join(__dirname, '../prediction_model/final.py');
         exec(`python "${scriptPath}" ${location} ${username}`, (error, stdout, stderr) => {
             if (error) {
                 console.error('Error executing script:', error);
