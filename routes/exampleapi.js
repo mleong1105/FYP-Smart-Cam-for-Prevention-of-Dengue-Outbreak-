@@ -27,7 +27,7 @@ router.post('/example', async (req, res) => {
                 res.status(200).json(result);
             } catch (jsonError) {
                 console.error('Error parsing JSON:', jsonError);
-                res.status(500).json({ status: 'error', message: 'Error parsing JSON response.' });
+                res.status(500).json({ status: 'error', message: 'Error parsing JSON response,' + jsonError, json: stdout });
             }
         });
     } catch (error) {
