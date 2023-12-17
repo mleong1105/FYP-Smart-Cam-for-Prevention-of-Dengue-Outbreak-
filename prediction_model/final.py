@@ -14,7 +14,6 @@ def result(num_habitat: int, total_detected_object: int):
     status = level_DO.LOW
     caution_habitat = False
 
-    print(mean_predicted_DC)
     if mean_predicted_DC > 5:
         status = level_DO.HIGH
 
