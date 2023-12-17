@@ -8,16 +8,16 @@ loaded_model = joblib.load('trained_model.joblib')
 
 # Prediction
 weather_data_dict = {
-    "Year": [2023],
-    "Month": [11],
-    "Day": [22],
-    "Location": ["Kuala Lumpur"],
-    "Daily.Rainfall.Total.mm": [23],
-    "Mean.Temperature.C": [27],
-    "Maximum.Temperature.C": [30],
-    "MinimumTemperature.C": [24],
-    "Mean.Wind.Speed.kmh": [7],
-    "Max.Wind.Speed": [17]
+    "Year": [2023, 2023, 2023, 2023, 2023, 2023, 2023],
+    "Month": [11, 11, 11, 11, 11, 11, 11],
+    "Day": [22, 23, 24, 25, 26, 27, 28],
+    "Location": ["Kuala Lumpur", "Kuala Lumpur", "Kuala Lumpur", "Kuala Lumpur", "Kuala Lumpur", "Kuala Lumpur", "Kuala Lumpur"],
+    "Daily.Rainfall.Total.mm": [23, 26, 30, 19, 35, 31, 40],
+    "Mean.Temperature.C": [27, 26, 26.5, 27.5, 26, 26, 27],
+    "Maximum.Temperature.C": [30, 29, 30, 28, 27.5, 26, 30],
+    "MinimumTemperature.C": [24, 23, 23, 26, 25.5, 26, 24],
+    "Mean.Wind.Speed.kmh": [7, 8, 10, 7, 7, 8, 9],
+    "Max.Wind.Speed": [17, 20, 25, 16, 18, 16, 21]
 }
 
 new_data = pd.DataFrame(weather_data_dict)  # Replace with your new data
