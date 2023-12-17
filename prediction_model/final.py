@@ -1,6 +1,5 @@
 from enum import Enum
 import sys
-print(sys.version)
 import pandas as pd
 import json
 
@@ -10,7 +9,7 @@ class level_DO(Enum):
     HIGH = 3
 
 def result(num_habitat: int, total_detected_object: int):
-    dengue_data = pd.read_csv('predicted.csv')
+    dengue_data = pd.read_csv('./prediction_model/predicted.csv')
     mean_predicted_DC = sum(dengue_data['Predicted Dengue Cases']) / len(dengue_data['Predicted Dengue Cases'])
     status = level_DO.LOW
     caution_habitat = False
@@ -30,7 +29,7 @@ def result(num_habitat: int, total_detected_object: int):
             status = level_DO.MEDIUM
 
     result_json = {
-        'status': status.name,
+        'status': status,
         'caution_habitat': caution_habitat,
         'total_detected_object': total_detected_object
     }

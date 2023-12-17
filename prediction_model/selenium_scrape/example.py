@@ -8,4 +8,4 @@ param1 = sys.argv[1]
 result = f"Received parameters: {param1}"
 
 # Print the result (this will be captured in the stdout when executed from Node.js)
-print(result)
+print(sys.version)
