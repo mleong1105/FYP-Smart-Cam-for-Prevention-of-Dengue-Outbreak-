@@ -29,7 +29,7 @@ def result(num_habitat: int, total_detected_object: int):
             status = level_DO.MEDIUM
 
     result_json = {
-        'status': status,
+        'status': status.value,
         'caution_habitat': caution_habitat,
         'total_detected_object': total_detected_object
     }
