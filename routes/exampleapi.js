@@ -24,6 +24,14 @@ router.post('/example', async (req, res) => {
 
             try {
                 const result = JSON.parse(stdout);
+                result.img_url = [
+                    'https://res.cloudinary.com/dlogct9ex/image/upload/v1702806574/image_report/detected_image2_yhmqxl.jpg', 
+                    'https://res.cloudinary.com/dlogct9ex/image/upload/v1702807037/image_report/detected_image6_vol1cy.jpg', 
+                    'https://res.cloudinary.com/dlogct9ex/image/upload/v1702807037/image_report/detected_image5_sol9fy.jpg', 
+                    'https://res.cloudinary.com/dlogct9ex/image/upload/v1702807037/image_report/detected_image4_tyvaay.jpg',
+                    'https://res.cloudinary.com/dlogct9ex/image/upload/v1702807035/image_report/detected_image3_zqk93d.jpg'
+                ]
+
                 res.status(200).json(result);
             } catch (jsonError) {
                 console.error('Error parsing JSON:', jsonError);
