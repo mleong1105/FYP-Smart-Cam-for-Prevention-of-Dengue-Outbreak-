@@ -1,5 +1,6 @@
 from enum import Enum
 import sys
+print(sys.version)
 import pandas as pd
 import json
 
@@ -38,4 +39,4 @@ def result(num_habitat: int, total_detected_object: int):
 
 result_dict = result(6, 20)
 result_json = json.dumps(result_dict)
-print(result_json, sys.version)
+print(result_json)
