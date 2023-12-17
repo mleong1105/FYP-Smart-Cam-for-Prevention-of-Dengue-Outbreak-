@@ -18,7 +18,7 @@ router.post('/example', async (req, res) => {
         exec(`python "${scriptPath}" ${location} ${username}`, (error, stdout, stderr) => {
             if (error) {
                 console.error('Error executing script:', error);
-                res.status(500).send('Error executing script.');
+                res.status(500).send('Error executing script:' + error);
                 return;
             }
 
