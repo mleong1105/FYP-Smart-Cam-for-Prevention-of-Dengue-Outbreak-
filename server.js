@@ -5,6 +5,7 @@ const session = require('express-session')
 const path = require('path');
 const bodyParser = require('body-parser');
 const admin = require('firebase-admin');
+const firebase = require("firebase/app");
 const {checkSession} = require('./middleware/session.js')
 const cloudinary = require('cloudinary').v2;
 
@@ -32,6 +33,18 @@ admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
     databaseURL: 'https://dengueshield-default-rtdb.asia-southeast1.firebasedatabase.app/', // Replace with your database URL
 });
+
+const config = {
+    apiKey: "AIzaSyCYcfKQn-qa77dG-N73nJe2JBpGEDO1-5E",
+    authDomain: "dengueshield.firebaseapp.com",
+    databaseURL: "https://dengueshield-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "dengueshield",
+    storageBucket: "dengueshield.appspot.com",
+    messagingSenderId: "628193220247",
+    appId: "1:628193220247:web:2b7bbbe115041de7337bd2",
+    measurementId: "G-9YCV5RT8VT"
+};
+firebase.initializeApp(config);
 
 cloudinary.config({
     cloud_name: 'dlogct9ex',
