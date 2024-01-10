@@ -6,6 +6,7 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const admin = require('firebase-admin');
 const {checkSession} = require('./middleware/session.js')
+const cloudinary = require('cloudinary').v2;
 
 const serviceAccount = require('./firebase/firebase-service-key.json');
 
@@ -31,6 +32,12 @@ admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
     databaseURL: 'https://dengueshield-default-rtdb.asia-southeast1.firebasedatabase.app/', // Replace with your database URL
 });
+
+cloudinary.config({
+    cloud_name: 'dlogct9ex',
+    api_key: '744349133114636',
+    api_secret: 'z7dnO2LVYOlEHgAWO6Z3CMubbqk'
+})
 
 app.use((req, res, next) => {
     res.show = (name) => {
@@ -67,6 +74,8 @@ app.use('/api/authenticate', require('./routes/authenticate'))
 app.use('/api/resourcemanage', require('./routes/resourcemanage'))
 
 app.use('/api/exampleapi', require('./routes/exampleapi'))
+
+app.use('/api/imageReport', require('./routes/image_report'))
 
 app.listen(port, () => {
     console.log(`Server started on port ${port}`);

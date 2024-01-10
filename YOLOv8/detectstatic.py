@@ -1,66 +1,40 @@
 from ultralytics import YOLO
-import math 
 import cv2
-import os
-
-# Path to the image file you want to detect objects in
-folder_path = "captured_images"
+import sys
+import numpy as np
 
 # model
 model = YOLO("runs/detect/train4/weights/best.pt")
 
-# object classes
-classNames = ["Waste container", "Flowerpot", "Tire"]
+def detect_objects():
+    # Read the image data from stdin
+    image_data = sys.stdin.buffer.read()
 
-for filename in os.listdir(folder_path):
-    if filename.endswith(('.jpg', '.jpeg', '.png')):  # Check if the file is an image
-        # Path to the image file
-        image_path = os.path.join(folder_path, filename)
+    # Convert the image data to a NumPy array
+    image_np = np.frombuffer(image_data, dtype=np.uint8)
+    img = cv2.imdecode(image_np, cv2.IMREAD_COLOR)
 
-        # Load the image
-        img = cv2.imread(image_path)
+    # Perform object detection on the loaded image
+    results = model(img)
 
-        # Perform object detection on the loaded image
-        results = model(img)
+    # coordinates
+    for r in results:
+        boxes = r.boxes
 
-        # coordinates
-        for r in results:
-            boxes = r.boxes
+        for box in boxes:
+            # bounding box
+            x1, y1, x2, y2 = box.xyxy[0]
+            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)  # convert to int values
 
-            for box in boxes:
-                # bounding box
-                x1, y1, x2, y2 = box.xyxy[0]
-                x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)  # convert to int values
+            # put box in image
+            cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 255), 3)
 
-                # put box in image
-                cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 255), 3)
+    # Convert the processed image back to bytes
+    _, processed_image_data = cv2.imencode('.jpg', img)
+    processed_image_bytes = processed_image_data.tobytes()
 
-                # confidence
-                confidence = math.ceil((box.conf[0]*100))/100
-                print("Confidence --->", confidence)
+    # Write the processed image data to stdout
+    sys.stdout.buffer.write(processed_image_bytes)
 
-                # class name
-                cls = int(box.cls[0])
-                print("Class name -->", classNames[cls])
-
-                # object details
-                org = [x1, y1]
-                font = cv2.FONT_HERSHEY_SIMPLEX
-                fontScale = 1
-                color = (255, 0, 0)
-                thickness = 2
-
-                cv2.putText(img, f"{classNames[cls]} {confidence}", org, font, fontScale, color, thickness)
-
-        # Save the image with bounding boxes and notations
-        output_directory = "captured_images"
-        os.makedirs(output_directory, exist_ok=True)
-
-        output_path = os.path.join(output_directory, f"detected_{os.path.basename(image_path)}")
-        cv2.imwrite(output_path, img)
-        print(f"Image with bounding boxes saved: {output_path}")
-
-# Display the image with bounding boxes and notations
-cv2.imshow('Detected Image', img)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+if __name__ == "__main__":
+    detect_objects()
