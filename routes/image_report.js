@@ -4,7 +4,6 @@ const admin = require('firebase-admin');
 const { spawn } = require('child_process');
 const path = require('path');
 const multer = require('multer');
-const cloudinary = require('cloudinary').v2;
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
@@ -57,11 +56,50 @@ router.post('/addImageReport', upload.single('file'), async (req, res) => {
                 console.log(`Python script exited with code ${code}`);
 
                 if (imageUrl) {
-                    res.status(200).json({
-                        status: 'success',
-                        message: 'Image processed and uploaded to Cloudinary successfully.',
+                    const currentTime = admin.database.ServerValue.TIMESTAMP;
+                    const imageStatus = numObjects > 0;
+                    const manualAnnotationStatus = !imageStatus;
+            
+                    const updateData = {
                         imageUrl: imageUrl,
-                        detectedObjects: numObjects
+                        updaterUid: userId,
+                        updateTime: currentTime,
+                        detectedObjects: numObjects,
+                        imageStatus: imageStatus,
+                        manualAnnotationStatus: manualAnnotationStatus,
+                        // manualAnnotatedImageUrl: "NO_URL",
+                        // manualAnnotatedTime: "NO_TIME",
+                        // annotaterUid: "NO_UID"
+                    };
+            
+                    new Promise((resolve, reject) => {
+                        const updateRef = admin.database().ref('Image Reports').push();
+                        updateRef.set(updateData, (error) => {
+                            if (error) {
+                                reject(error);
+                            } else {
+                                resolve();
+                            }
+                        });
+                    })
+                    .then(() => {
+                        let message = 'Image uploaded';
+                        if (manualAnnotationStatus) {
+                            message =  message + ",manual bounding box annotation required for activating image report."
+                            console.log(message);
+                        }
+            
+                        res.status(200).json({
+                            status: 'success',
+                            message: message,
+                            imageUrl: imageUrl,
+                            detectedObjects: numObjects,
+                            manualAnnotationStatus: manualAnnotationStatus
+                        });
+                    })
+                    .catch((error) => {
+                        console.error('Error writing to Firebase:', error);
+                        res.status(500).json({ status: 'error', message: 'Error writing to Firebase' });
                     });
                 } else {
                     res.status(500).json({ status: 'error', message: 'Error uploading image to Cloudinary' });
