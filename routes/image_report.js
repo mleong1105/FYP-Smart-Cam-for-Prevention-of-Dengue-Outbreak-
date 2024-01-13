@@ -36,39 +36,36 @@ router.post('/addImageReport', upload.single('file'), async (req, res) => {
             pythonProcess.stdin.write(file.buffer);
             pythonProcess.stdin.end();
     
-            // pythonProcess.stdout.on('data', (data) => {
-            //     console.log(`Python script output: ${data}`);
-            // });
-    
-            // pythonProcess.stderr.on('data', (data) => {
-            //     console.error(`Python script error: ${data}`);
-            // });
-    
+            let imageUrl, numObjects;
+
+            pythonProcess.stdout.on('data', (data) => {
+                const output = data.toString().trim();
+                console.log(`Python script output: ${output}`);
+
+                const matchObjects = output.match(/Number of detected objects: (\d+)/);
+                numObjects = matchObjects ? parseInt(matchObjects[1]) : null;
+
+                const matchUrl = output.match(/Cloudinary Image URL: (.+)/);
+                imageUrl = matchUrl ? matchUrl[1] : null;
+            });
+
+            pythonProcess.stderr.on('data', (data) => {
+                console.error(`Python script error: ${data}`);
+            });
+
             pythonProcess.on('close', (code) => {
                 console.log(`Python script exited with code ${code}`);
-    
-                // Read the processed image from the Python script's stdout
-                const processedImageBuffer = file.buffer;
-    
-                // Upload the processed image with bounding box to Cloudinary
-                cloudinary.uploader.upload_stream({ resource_type: 'image' },
-                    (error, result) => {
-                        if (error) {
-                            console.error('Cloudinary upload error:', error);
-                            res.status(500).json({ status: 'error', message: 'Error uploading image to Cloudinary' });
-                            return;
-                        }
-    
-                        // Extract the image URL from the Cloudinary response
-                        const imageUrl = result.secure_url;
-    
-                        res.status(200).json({
-                            status: 'success',
-                            message: 'Image processed and uploaded to Cloudinary successfully.',
-                            imageUrl: imageUrl,
-                        });
-                    }
-                ).end(processedImageBuffer);
+
+                if (imageUrl) {
+                    res.status(200).json({
+                        status: 'success',
+                        message: 'Image processed and uploaded to Cloudinary successfully.',
+                        imageUrl: imageUrl,
+                        detectedObjects: numObjects
+                    });
+                } else {
+                    res.status(500).json({ status: 'error', message: 'Error uploading image to Cloudinary' });
+                }
             });
         }
         else {
