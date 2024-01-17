@@ -116,7 +116,7 @@ async function scrapeWeatherData(dayIndex, regionKey, locationName) {
 async function runWeatherCheck(regionKey, locationData) {
     const status = false;
     const today = moment().tz(timeZone);
-    const year = today.getFullYear();
+    const year = today.year();
     const week = getWeekNumber(today);
   
     const regionName = regionKey;
@@ -124,14 +124,14 @@ async function runWeatherCheck(regionKey, locationData) {
 
     const dataExists = await checkDataExists(year, week, regionName, locationName);
     if (!dataExists) {
-      const day = today.getDay();
+      const day = today.day()
       const {isExactLocation, weatherData} = await scrapeWeatherData(day, regionKey, locationName);
 
       if (isExactLocation) {
         const counter = 0;
         const weatherDataArray = [];  
 
-        for (let day = today.getDay(); day <= 6; day++) {
+        for (let day = today.day(); day <= 6; day++) {
           const dayName = getDayName(day);
           const scrapedDataForDay = weatherData[counter];
 
