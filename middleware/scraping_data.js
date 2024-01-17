@@ -1,9 +1,11 @@
 const admin = require('firebase-admin');
 const axios = require('axios')
 const cheerio = require('cheerio');
+const moment = require('moment-timezone');
 const { spawn } = require('child_process');
 
 let database;
+const timeZone = 'Asia/Kuala_Lumpur';
 
 async function checkDataExists(year, week, regionKey, location) {
   const snapshot = await database.ref(`scraped-data/${year}/${week}/${regionKey}`).once('value');
@@ -23,7 +25,8 @@ async function scrapeWeatherData(dayIndex, regionKey, locationName) {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
     };
 
-    const response = await axios.get(`https://www.accuweather.com/en/search-locations?query=${encodeURIComponent(locationName)}`, { headers });
+    const sanitizedLocationName = locationName.replace(/ /g, '+');
+    const response = await axios.get(`https://www.accuweather.com/en/search-locations?query=${sanitizedLocationName}}`, { headers, timeout: 30000});
     const data = response.data;
 
     console.log("Successfully loaded weather page");
@@ -112,7 +115,7 @@ async function scrapeWeatherData(dayIndex, regionKey, locationName) {
 
 async function runWeatherCheck(regionKey, locationData) {
     const status = false;
-    const today = new Date();
+    const today = moment().tz(timeZone);
     const year = today.getFullYear();
     const week = getWeekNumber(today);
   
@@ -208,10 +211,10 @@ async function runWeatherCheck(regionKey, locationData) {
 }
 
 function getWeekNumber(date) {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() + 4 - (d.getDay() || 7));
-  const yearStart = new Date(d.getFullYear(), 0, 1);
+  const d = moment.tz(date, timeZone);
+  d.hours(0).minutes(0).seconds(0).milliseconds(0);
+  d.date(d.date() + 4 - (d.day() || 7));
+  const yearStart = moment.tz([d.year(), 0, 1], timeZone);
   return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
 }
 
