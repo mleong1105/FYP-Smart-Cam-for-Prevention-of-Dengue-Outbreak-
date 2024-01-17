@@ -8,6 +8,8 @@ const checkSession = (req, res, next) => {
   if (!isAuthenticated && req.url !== '/login' && req.url !== '/signup' && req.url !== '/api/authenticate/accountlogin' && req.url !== '/api/authenticate/accountloginAP' && req.url !== '/api/authenticate/accountsignup' && req.url !== '/favicon.ico'
   && req.url !== '/api/exampleapi/example'
   && req.url !== '/api/imageReport/addImageReport'
+  && req.url !== '/api/time'
+  && req.url !== '/api/tryapi'
   ) {
     console.log(isAuthenticated, req.url)
     res.redirect('/login');

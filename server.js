@@ -86,6 +86,11 @@ app.get('/api/time', (req, res) => {
     res.json({ time: currentTime });
 });
 
+app.get('/api/tryapi', (req, res) => {
+    weatherDataScrapingJob(admin);
+    res.json({ status: "good" });
+});
+
 //Routes and API
 //Routes - Login Authentication
 app.use('/api/authenticate', require('./routes/authenticate'))
@@ -97,7 +102,7 @@ app.use('/api/exampleapi', require('./routes/exampleapi'))
 
 app.use('/api/imageReport', require('./routes/image_report'))
 
-cron.schedule('50 3 * * *', async () => {
+cron.schedule('10 4 * * *', async () => {
     await weatherDataScrapingJob(admin);
 });
 
