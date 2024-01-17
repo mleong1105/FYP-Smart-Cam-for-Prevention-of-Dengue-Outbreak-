@@ -7,6 +7,8 @@ const bodyParser = require('body-parser');
 const admin = require('firebase-admin');
 const firebase = require("firebase/app");
 const {checkSession} = require('./middleware/session.js')
+const cron = require('node-cron');
+const { weatherDataScrapingJob } = require('./middleware/scraping_data.js');
 const cloudinary = require('cloudinary').v2;
 
 const serviceAccount = require('./firebase/firebase-service-key.json');
@@ -79,6 +81,11 @@ app.get('/dronemanage', function(req, res) {
     res.show('dronemanage/dronemanage.html');
 })
 
+app.get('/api/time', (req, res) => {
+    const currentTime = new Date().toLocaleString();
+    res.json({ time: currentTime });
+});
+
 //Routes and API
 //Routes - Login Authentication
 app.use('/api/authenticate', require('./routes/authenticate'))
@@ -89,6 +96,10 @@ app.use('/api/resourcemanage', require('./routes/resourcemanage'))
 app.use('/api/exampleapi', require('./routes/exampleapi'))
 
 app.use('/api/imageReport', require('./routes/image_report'))
+
+cron.schedule('50 3 * * *', async () => {
+    await weatherDataScrapingJob(admin);
+});
 
 app.listen(port, () => {
     console.log(`Server started on port ${port}`);

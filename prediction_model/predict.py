@@ -3,6 +3,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 import joblib
+import requests
+from bs4 import BeautifulSoup
 
 loaded_model = joblib.load('trained_model.joblib')
 

@@ -1,5 +1,5 @@
 from enum import Enum
-import sys
+import requests
 import pandas as pd
 import json
 
