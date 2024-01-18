@@ -82,7 +82,7 @@ router.post('/accountsignup', async (req, res) => {
     const firstName = req.body.firstName
     const lastName = req.body.lastName
     const birthday = req.body.birthday
-    const address = req.body.address
+    const coordinates = req.body.coordinates
     const role = req.body.role
 
     try {
@@ -106,10 +106,10 @@ router.post('/accountsignup', async (req, res) => {
                 firstName: firstName,
                 lastName: lastName,
                 birthday: birthday,
-                address: address,
+                coordinates: coordinates,
                 role: role
             });
-            const [latStr, longStr] = address.split(', ');
+            const [latStr, longStr] = coordinates.split(', ');
             const lat = parseFloat(latStr);
             const long = parseFloat(longStr);
 
@@ -154,7 +154,7 @@ router.post('/accountsignup', async (req, res) => {
                 firstName: firstName,
                 lastName: lastName,
                 birthday: birthday,
-                address: address,
+                coordinates: coordinates,
                 role: role,
                 reqemail: reqemail
             });
