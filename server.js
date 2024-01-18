@@ -102,7 +102,7 @@ app.use('/api/exampleapi', require('./routes/exampleapi'))
 
 app.use('/api/imageReport', require('./routes/image_report'))
 
-cron.schedule('27 21 * * *', async () => {
+cron.schedule('24 1 * * *', async () => {
     await weatherDataScrapingJob(admin);
 });
 

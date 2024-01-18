@@ -1,213 +1,157 @@
 const admin = require('firebase-admin');
-const axios = require('axios')
-const cheerio = require('cheerio');
+const sdk = require('api')('@climacell-docs/v4.0.1#2kzjaw32flr3g5k2l');
 const moment = require('moment-timezone');
 const { spawn } = require('child_process');
 
 let database;
 const timeZone = 'Asia/Kuala_Lumpur';
 
-async function checkDataExists(year, week, regionKey, location) {
-  const snapshot = await database.ref(`scraped-data/${year}/${week}/${regionKey}`).once('value');
-  if (snapshot.exists) {
-    const snapshot2 = await database.ref(`scraped-data/${year}/${week}/${regionKey}/${location}`).once('value');
-    return snapshot2.exists();
-  }
-  else {
-    return snapshot.exists();
-  }
-}
+// async function getLocationKey(apiKey, regionKey, locationName, locationKey) {  
+//     if (locationKey === null) {
+//       try {
+//         const sanitizedLocationName = encodeURIComponent(locationName);
+//         const searchUrl = `http://dataservice.accuweather.com/locations/v1/cities/search?apikey=${apiKey}&q=${sanitizedLocationName}`;
+//         const searchResponse = await axios.get(searchUrl);
+//         const searchData = searchResponse.data[0]
+//         const searchRegion = searchData.AdministrativeArea.EnglishName
+//         const searchLocation = searchData.EnglishName
+//         const searchCountry = searchData.Country.ID
+
+//         const regionContainsPart = new RegExp(regionKey, 'i').test(searchRegion);
+//         if (searchCountry === "MY" && regionContainsPart && searchLocation === locationName) {
+//           const newlocationKey = searchData.Key;
+
+//           const databaseRef = admin.database().ref(`/Location/${regionKey}/${locationName}`);
+//           databaseRef.update({ key: newlocationKey })
+//           .then(() => {
+//             console.log('Location Key updated successfully');
+//             return { status: true, newlocationKey }
+//           })
+//           .catch((error) => {
+//             console.error('Error updating database:', error);
+//             return { status: false, newlocationKey }
+//           });      
+//         }
+//         else {
+//           console.log('Location not match')
+//           return { status: false, newlocationKey: null }
+//         }
+//       } catch (error) {
+//         console.error('Error:', error.message);
+//         return { status: false, newlocationKey: null };
+//       }
+//     }
+//     else {
+//       console.log('Location Key already exist in database')
+//       return { status: true, locationKey }
+//     }
+// }
 
 async function scrapeWeatherData(dayIndex, regionKey, locationName) {  
-  console.log("Accessing to weather forecast website")
-  try {
-    const headers = {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-    };
+  return new Promise(async (resolve) => {
+    let resstatus = false;
+    let dailyData = null;
 
-    const sanitizedLocationName = locationName.replace(/ /g, '+');
-    const response = await axios.get(`https://www.accuweather.com/en/search-locations?query=${sanitizedLocationName}}`, { headers, timeout: 30000});
-    const data = response.data;
+    const options = { method: 'GET', headers: { accept: 'application/json' } };
+    const url = `https://api.tomorrow.io/v4/weather/forecast?location=${encodeURIComponent(locationName)}&timesteps=1d&units=metric&apikey=0JFemnJdgenKylKTrhuIKnHt99uvXoC1`;
 
-    console.log("Successfully loaded weather page");
-    const $ = cheerio.load(data);
+    try {
+      const response = await fetch(url, options);
+      const data = await response.json();
 
-    const locationLink = $('.locations-list a:first-child').attr('href');
-    const locationUrl = `https://www.accuweather.com${locationLink}`;
+      console.log("Getting data from outsource");
 
-    const locationPage = await axios({
-      method: 'get',
-      url: locationUrl,
-    });
+      const resLocationData = data.location;
+      const resLocationName = resLocationData.name;
 
-    console.log("Successfully select location")
-    const locationHtml = locationPage.data;
-    const location$ = cheerio.load(locationHtml);
-
-    const [locationPart, regionPart] = location$('h1.header-loc').text().split(',').map((part) => part.trim());
-    const regionContainsPart = new RegExp(regionPart, 'i').test(regionKey);
-    const isExactLocation = regionContainsPart && locationPart === locationName;
-
-    if (isExactLocation) {
-      const counter = 1;
-      const dailyLink = location$('a[data-pageid="daily"]').attr('href');
-      const dailyUrl = `https://www.accuweather.com${dailyLink}`;
-
-      const dailyWeatherData = []
-
-      for (let i = dayIndex; i <= 6; i++) {
-        const urlWithDayParam = `${dailyUrl}?day=${counter}`;
-        const dailyPage = await axios({
-          method: 'get',
-          url: urlWithDayParam,
-        });
-        const dailyHtml = dailyPage.data;
-        const daily$ = cheerio.load(dailyHtml);
-
-        daily$('.daily-forecast-card p.panel-item').each((_, panelItem) => {
-          const label = daily$(panelItem).text().split(' ')[0].trim();
-          const value = daily$(panelItem).find('.value').text().trim();
-
-          if (label === 'Wind' || label === 'Rain') {
-            const match = value.match(/\d+/);
-            const dataValue = match ? match[0] : null;
-
-            if (!extractedData[label] && dataValue != null) {
-              extractedData[label] = [];
-            }
-
-            if (dataValue != null) {
-              extractedData[label].push(dataValue);
-            }
-          }
-        });
-
-        daily$('.weather .temperature').each((_, temperatureElement) => {
-          const temperature = daily$(temperatureElement).text().trim();
-          const tempMatch = temperature.match(/\d+/);
-          const temp = tempMatch ? tempMatch[0] : null;
-
-          if (!extractedData['Temp'] && temp != null) {
-            extractedData['Temp'] = [];
-          }
-
-          if (temp != null) {
-            extractedData['Temp'].push(temp);
-          }
-        });
-
-        if (Object.keys(extractedData).length > 0) {
-          dailyWeatherData.push(extractedData);
-        }
-        counter++;
+      let regionContainsPart;
+      if (regionKey === "Federal Territory of Kuala Lumpur") {
+        regionContainsPart = resLocationName.includes("Kuala Lumpur");
+      } else {
+        regionContainsPart = resLocationName.includes(regionKey);
       }
-      console.log('Daily Weather Data:', dailyWeatherData);
 
-      return { isExactLocation, weatherData: dailyWeatherData };
-    } else {
-      return { isExactLocation, weatherData: null };
+      const locationContainsPart = resLocationName.includes(locationName);
+      const isExactLocation = regionContainsPart && locationContainsPart;
+
+      if (isExactLocation) {
+        let maxday;
+        if (dayIndex < 3) {
+          maxday = 2;
+        } else if (dayIndex >= 3 && dayIndex <= 6) {
+          maxday = 6;
+        }
+
+        dailyData = {};
+        let counter = 0;
+        const weatherDaily = data.timelines.daily;
+
+        for (let i = dayIndex; i <= maxday; i++) {
+          const weatherData = weatherDaily[counter].values;
+          const extractData = {
+            meanTemp: weatherData.temperatureAvg,
+            maxTemp: weatherData.temperatureMax,
+            minTemp: weatherData.temperatureMin,
+
+            meanWind: weatherData.windSpeedAvg,
+            maxWind: weatherData.windSpeedMax,
+            minWind: weatherData.windSpeedMin,
+
+            totalRainfall: weatherData.rainAccumulationSum,
+          };
+
+          dailyData[getDayName(dayIndex)] = extractData;
+          counter++;
+        }
+
+        resstatus = true;
+      } else {
+        console.log("Location does not match");
+        resstatus = false;
+      }
+    } catch (error) {
+      console.error(error);
+      resstatus = false;
     }
-  } catch (error) {
-    console.error('Error:', error.message);
-    return { isExactLocation: false, weatherData: null };
-  }
+
+    resolve({ resstatus, dailyData });
+  });
 }
 
-async function runWeatherCheck(regionKey, locationData) {
-    const status = false;
+async function runCheck(regionKey, locationName) {
+    console.log("Checking existing data")
     const today = moment().tz(timeZone);
     const year = today.year();
     const week = getWeekNumber(today);
+    const day = today.day();
+    const dayName = getDayName(day);
+
+    return new Promise(async (resolve) => {
+      const snapshot = await database.ref(`Weather-data/${year}/${week}/${regionKey}/${locationName}/${dayName}`).once('value');
   
-    const regionName = regionKey;
-    const locationName = locationData;
-
-    const dataExists = await checkDataExists(year, week, regionName, locationName);
-    if (!dataExists) {
-      const day = today.day()
-      const {isExactLocation, weatherData} = await scrapeWeatherData(day, regionKey, locationName);
-
-      if (isExactLocation) {
-        const counter = 0;
-        const weatherDataArray = [];  
-
-        for (let day = today.day(); day <= 6; day++) {
-          const dayName = getDayName(day);
-          const scrapedDataForDay = weatherData[counter];
-
-          let minWind, maxWind, meanWind;
-          let minTemp, maxTemp, meanTemp;
-
-          if (scrapedDataForDay && scrapedDataForDay['Wind']) {
-            const windValues = scrapedDataForDay['Wind'];
-            const winda = parseFloat(windValues[0]);
-            const windb = parseFloat(windValues[1]);
-
-            minWind = Math.min(winda, windb);
-            maxWind = Math.max(winda, windb);
-            meanWind = (winda + windb) / 2;
+      if (!snapshot.exists()) {
+        const weatherResponse = await scrapeWeatherData(day, regionKey, locationName);
+        const resstatus = weatherResponse.resstatus;
+        const dailyData = weatherResponse.dailyData;
+  
+        if (resstatus && dailyData !== null) {
+          try {
+            await database.ref(`Weather-data/${year}/${week}/${regionKey}/${locationName}`).update(dailyData);
+            console.log('Location: ' + locationName + ', ' + regionKey + '. Weather data scraped and stored successfully');
+            resolve(true);
+          } catch (error) {
+            console.error('Error updating daily data in the database:', error.message);
+            resolve(false);
           }
-
-          if (scrapedDataForDay && scrapedDataForDay['Temp']) {
-            const tempValues = scrapedDataForDay['Temp'];
-            const tempa = parseFloat(tempValues[0]);
-            const tempb = parseFloat(tempValues[1]);
-
-            minTemp = Math.min(tempa, tempb);
-            maxTemp = Math.max(tempa, tempb);
-            meanTemp = (minTemp + maxTemp) / 2;
-          }
-
-          let totalRain;
-          if (scrapedDataForDay && scrapedDataForDay['Rain']) {
-            const rainValues = scrapedDataForDay['Rain'];
-        
-            const raina = parseFloat(rainValues[0]);
-            const rainb = parseFloat(rainValues[1]);
-            totalRain = raina + rainb;
-          }
-
-          if (totalRain !== null && minTemp !== null && maxTemp !== null && minWind !== null && maxWind !== null ) {
-            const dayData = {
-              dayName: dayName,
-              minWind: minWind,
-              maxWind: maxWind,
-              meanWind: meanWind,
-              totalRainfall: totalRain,
-              minTemp: minTemp,
-              maxTemp: maxTemp,
-              meanTemp: meanTemp,
-            };
-            weatherDataArray.push(dayData);
-          }
-          counter++
+        } else {
+          console.log('Location: ' + locationName + ', ' + regionKey + '. Weather Data Array is null, database is not updated');
+          resolve(false);
         }
-
-          if (weatherDataArray.length > 0) {
-            await database.ref(`scraped-data/${year}/${week}/${regionKey}/${locationName}`).set({});
-            await database.ref(`scraped-data/${year}/${week}/${regionKey}/${locationName}/weather-data`).set(weatherDataArray);
-            await database.ref(`scraped-data/${year}/${week}/${regionKey}/${locationName}`).update({
-              timestamp: today.toISOString(),
-              prediction_status: false,
-              prediction_data: null
-            });
-            status = true;
-            console.log('Location: ' + locationName + ', ' + regionName + '. Weather data scraped and stored successfully');
-          }
-          else {
-            console.log('Location: ' + locationName + ', ' + regionName + '. Weather Data Array is empty, database is not updated')
-            return status
-          }
-
       } else {
-        console.log('Location: ' + locationName + ', ' + regionName + '. Location of found data does not match with input location')
-        return status
+        console.log('Location: ' + locationName + ', ' + regionKey + '. Weather data already exists');
+        resolve(true);
       }
-    } else {
-      console.log('Location: ' + locationName + ', ' + regionName + '. Weather data for this week already exists');
-      return status
-    }
-    return status;
+    });
 }
 
 function getWeekNumber(date) {
@@ -231,22 +175,21 @@ async function weatherDataScrapingJob(admin) {
     const regionsData = regionSnapshot.val();
 
     for (const [regionKey, regionData] of Object.entries(regionsData)) {
-      for (const [localityKey, localityName] of Object.entries(regionData.locality)) {
-        const locationData = localityName
-        if (regionKey === "Federal Territory of Kuala Lumpur") {
-          regionKey = "Kuala Lumpur"
+      for (const [localityKey, localityData] of Object.entries(regionData)) {
+        console.log(localityKey, localityData)
+        const locationName = localityData.name
+
+        const status = await runCheck(regionKey, locationName);
+        if (status) {
+          const snapshot = await database.ref(`Weather-data/${year}/${week}/${regionKey}/${locationName}`).once('value');
+          const weatherDataArray = snapshot.val();
+
+          const scriptPath = path.join(__dirname, '../YOLOv8/detectstatic.py');
+          const pythonProcess = spawn('python', [scriptPath], { cwd: path.join(__dirname, '../prediction_model') });
         }
-        const status = await runWeatherCheck(regionKey, locationData);
-        // if (status) {
-        //   const snapshot = await database.ref(`scraped-data/${year}/${week}/${regionKey}/${locationName}/weather-data`).once('value');
-        //   const weatherDataArray = snapshot.val();
+        else {
 
-        //   const scriptPath = path.join(__dirname, '../YOLOv8/detectstatic.py');
-        //   const pythonProcess = spawn('python', [scriptPath], { cwd: path.join(__dirname, '../prediction_model') });
-        // }
-        // else {
-
-        // }
+        }
       }
     }
   } catch (snapshotError) {
@@ -255,6 +198,5 @@ async function weatherDataScrapingJob(admin) {
 }
 
 module.exports = {
-  runWeatherCheck,
   weatherDataScrapingJob
 };
