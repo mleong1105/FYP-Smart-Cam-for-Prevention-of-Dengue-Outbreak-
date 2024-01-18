@@ -102,7 +102,7 @@ app.use('/api/predictionDcWeather', require('./routes/prediction_dc_weather.js')
 
 app.use('/api/imageReport', require('./routes/image_report'))
 
-cron.schedule('24 1 * * *', async () => {
+cron.schedule('0 16 * * *', async () => {
     await weatherDataScrapingJob(admin);
 });
 
