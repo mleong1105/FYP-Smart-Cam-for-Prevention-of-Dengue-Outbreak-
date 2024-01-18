@@ -65,7 +65,7 @@ async function scrapeWeatherData(dayIndex, regionKey, locationName) {
       const resLocationName = resLocationData.name;
 
       let regionContainsPart;
-      if (regionKey === "Wilayah Persekutuan Kuala Lumpur") {
+      if (regionKey === "Wilayah Persekutuan Kuala Lumpur" || "Federal Territory of Kuala Lumpur") {
         regionContainsPart = resLocationName.includes("Kuala Lumpur");
       } else {
         regionContainsPart = resLocationName.includes(regionKey);
@@ -89,14 +89,14 @@ async function scrapeWeatherData(dayIndex, regionKey, locationName) {
         for (let i = dayIndex; i <= maxday; i++) {
           const weatherData = weatherDaily[counter].values;
           const extractData = {
-            "Mean.Temperature.C": weatherData.temperatureAvg,
-            "Maximum.Temperature.C": weatherData.temperatureMax,
-            "MinimumTemperature.C": weatherData.temperatureMin,
+            "Mean_Temperature_C": weatherData.temperatureAvg,
+            "Maximum_Temperature_C": weatherData.temperatureMax,
+            "MinimumTemperature_C": weatherData.temperatureMin,
 
-            "Mean.Wind.Speed.kmh": weatherData.windSpeedAvg,
-            "Max.Wind.Speed.kmh": weatherData.windSpeedMax,
+            "Mean_Wind_Speed_kmh": weatherData.windSpeedAvg,
+            "Max_Wind_Speed_kmh": weatherData.windSpeedMax,
 
-            "Daily.Rainfall.Total.mm": weatherData.rainAccumulationSum,
+            "Daily_Rainfall_Total_mm": weatherData.rainAccumulationSum,
           };
 
           dailyData[getDayName(i)] = extractData;
@@ -117,7 +117,7 @@ async function scrapeWeatherData(dayIndex, regionKey, locationName) {
   });
 }
 
-async function runCheck(regionKey, locationName) {
+async function runCheck(regionKey, locationName, database) {
     console.log("Checking existing data")
     const today = moment().tz(timeZone);
     const year = today.year();
@@ -126,6 +126,9 @@ async function runCheck(regionKey, locationName) {
     const dayName = getDayName(day);
 
     return new Promise(async (resolve) => {
+      if (regionKey === "Wilayah Persekutuan Kuala Lumpur" || "Federal Territory of Kuala Lumpur") {
+        regionKey = "Kuala Lumpur"
+      }
       const snapshot = await database.ref(`Weather-data/${year}/${week}/${regionKey}/${locationName}/${dayName}`).once('value');
   
       if (!snapshot.exists()) {
@@ -174,11 +177,14 @@ async function weatherDataScrapingJob(admin) {
     const regionsData = regionSnapshot.val();
 
     for (const [regionKey, regionData] of Object.entries(regionsData)) {
+      if (regionKey === "Wilayah Persekutuan Kuala Lumpur" || "Federal Territory of Kuala Lumpur") {
+        regionKey = "Kuala Lumpur"
+      }
       for (const [localityKey, localityData] of Object.entries(regionData)) {
         console.log(localityKey, localityData)
         const locationName = localityData.name
 
-        const status = await runCheck(regionKey, locationName);
+        const status = await runCheck(regionKey, locationName, database);
       }
     }
   } catch (snapshotError) {

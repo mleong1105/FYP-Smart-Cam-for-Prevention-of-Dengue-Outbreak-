@@ -4,6 +4,7 @@ const admin = require('firebase-admin');
 const { spawn } = require('child_process');
 const path = require('path');
 const multer = require('multer');
+const axios = require('axios')
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
@@ -37,6 +38,37 @@ router.post('/addImageReport', upload.single('file'), async (req, res) => {
     
             let imageUrl, numObjects;
 
+            const [latStr, longStr] = coordinates.split(', ');
+            const lat = parseFloat(latStr);
+            const long = parseFloat(longStr);
+            let formatAddr, administrativeAreaLevel1, locality, sublocalityLevel1, country
+
+            const apiKey = 'AIzaSyApYzXx3126zpxJdnRSxo7r1EGZQbR2lG8';
+            const apiUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${long}&key=${apiKey}`;
+            try {
+                const response = await axios.get(apiUrl);
+                const results = response.data.results;
+    
+                if (results && results.length > 0) {
+                    formatAddr = results[0].formatted_address;
+                    country = getAddressComponent("country", response.data);
+                    administrativeAreaLevel1 = getAddressComponent("administrative_area_level_1", response.data);
+                    locality = getAddressComponent("locality", response.data);
+                    sublocalityLevel1 = getAddressComponent("sublocality_level_1", response.data);
+
+                    if (administrativeAreaLevel1 === "Wilayah Persekutuan Kuala Lumpur" || "Federal Territory of Kuala Lumpur") {
+                        administrativeAreaLevel1 = "Kuala Lumpur";
+                    }
+                    valueNull = false;
+                } else {
+                    valueNull = true;
+                    console.error('No results found for the given address.');
+                }
+            } catch (error) {
+                valueNull = true;
+                console.error('Error fetching data from Google Maps API:', error.message);
+            }
+
             pythonProcess.stdout.on('data', (data) => {
                 const output = data.toString().trim();
                 console.log(`Python script output: ${output}`);
@@ -61,6 +93,7 @@ router.post('/addImageReport', upload.single('file'), async (req, res) => {
                     const manualAnnotationStatus = !imageStatus;
             
                     const updateData = {
+                        coordinates: coordinates,
                         imageUrl: imageUrl,
                         updaterUid: userId,
                         updateTime: currentTime,
@@ -71,9 +104,9 @@ router.post('/addImageReport', upload.single('file'), async (req, res) => {
                         // manualAnnotatedTime: "NO_TIME",
                         // annotaterUid: "NO_UID"
                     };
-            
+
                     new Promise((resolve, reject) => {
-                        const updateRef = admin.database().ref('Image Reports').push();
+                        const updateRef = admin.database().ref(`Image Reports/${administrativeAreaLevel1}/${locality}/${sublocalityLevel1}`).push();
                         updateRef.set(updateData, (error) => {
                             if (error) {
                                 reject(error);
@@ -93,6 +126,7 @@ router.post('/addImageReport', upload.single('file'), async (req, res) => {
                             status: 'success',
                             message: message,
                             imageUrl: imageUrl,
+                            coordinates: coordinates,
                             detectedObjects: numObjects,
                             manualAnnotationStatus: manualAnnotationStatus
                         });
@@ -115,5 +149,10 @@ router.post('/addImageReport', upload.single('file'), async (req, res) => {
         res.status(500).json({ status: 'error', message: 'Internal server error' });
     }
 });
+
+function getAddressComponent(type, addressDetails) {
+    const result = addressDetails.results[0].address_components.find(component => component.types.includes(type));
+    return result ? result.long_name : null;
+}
 
 module.exports = router;

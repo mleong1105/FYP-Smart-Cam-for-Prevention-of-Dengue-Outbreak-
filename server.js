@@ -98,7 +98,7 @@ app.use('/api/authenticate', require('./routes/authenticate'))
 //Routes - Resource Management Search
 app.use('/api/resourcemanage', require('./routes/resourcemanage'))
 
-app.use('/api/exampleapi', require('./routes/exampleapi'))
+app.use('/api/predictionDcWeather', require('./routes/prediction_dc_weather.js'))
 
 app.use('/api/imageReport', require('./routes/image_report'))
 
