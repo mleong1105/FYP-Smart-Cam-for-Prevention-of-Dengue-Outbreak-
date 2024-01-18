@@ -109,7 +109,7 @@ router.post('/accountsignup', async (req, res) => {
                 address: address,
                 role: role
             });
-            const [latStr, longStr] = address.split(',');
+            const [latStr, longStr] = address.split(', ');
             const lat = parseFloat(latStr);
             const long = parseFloat(longStr);
 
