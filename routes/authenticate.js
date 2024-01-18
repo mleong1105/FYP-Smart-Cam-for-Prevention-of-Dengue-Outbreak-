@@ -41,7 +41,7 @@ router.post('/accountlogin', async (req, res) => {
         // Authentication successful
         req.session.isAuthenticated = true;
         req.session.userRole = role; // Store user role in session
-        res.json({ status: 'success', role: role, userData: userData });
+        res.json({ status: 'success', uid: userId, role: role, userData: userData });
     } catch (error) {
         console.error('Error authenticating user:', error.message);
         res.status(401).json({ status: 'failure', message: 'Invalid email or password' });
@@ -109,10 +109,14 @@ router.post('/accountsignup', async (req, res) => {
                 address: address,
                 role: role
             });
-            
+            const [latStr, longStr] = address.split(',');
+            const lat = parseFloat(latStr);
+            const long = parseFloat(longStr);
+
             const apiKey = 'AIzaSyApYzXx3126zpxJdnRSxo7r1EGZQbR2lG8';
-            const apiUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`;
-    
+            // const apiUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`;
+            const apiUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${long}&key=${apiKey}`;
+
             axios.get(apiUrl)
             .then(response => {
                 const results = response.data.results;

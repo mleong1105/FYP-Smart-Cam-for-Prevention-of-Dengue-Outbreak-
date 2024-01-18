@@ -187,5 +187,6 @@ async function weatherDataScrapingJob(admin) {
 }
 
 module.exports = {
+  runCheck,
   weatherDataScrapingJob
 };
