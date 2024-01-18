@@ -110,20 +110,28 @@ router.post('/accountsignup', async (req, res) => {
                 role: role
             });
             
-            const apiKey = 'YOUR_API_KEY';
+            const apiKey = 'AIzaSyApYzXx3126zpxJdnRSxo7r1EGZQbR2lG8';
             const apiUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`;
     
             axios.get(apiUrl)
             .then(response => {
                 const results = response.data.results;
                 if (results && results.length > 0) {
-                    const administrativeAreaLevel1 = getAddressComponent("administrative_area_level_1");
-                    const locality = getAddressComponent("locality");
-                    const sublocalityLevel1 = getAddressComponent("sublocality_level_1");
-    
-                    const databaseRef = admin.database().ref(`Location/${administrativeAreaLevel1}/${locality}`).set({
-                        name: locality
-                    });
+                    const country = getAddressComponent("country", response.data)
+
+                    if (country === "Malaysia") {
+                        const administrativeAreaLevel1 = getAddressComponent("administrative_area_level_1", response.data);
+                        const locality = getAddressComponent("locality", response.data);
+                        console.log(locality)
+                        const sublocalityLevel1 = getAddressComponent("sublocality_level_1", response.data);
+        
+                        const databaseRef = admin.database().ref(`Location/${administrativeAreaLevel1}/${locality}`).set({
+                            name: locality
+                        });
+                    }
+                    else {
+                        console.log("We only support Malaysia location.")
+                    }
                 } else {
                     console.error('No results found for the given address.');
                 }
@@ -159,7 +167,7 @@ router.post('/accountsignup', async (req, res) => {
     }
 });
 
-function getAddressComponent(type) {
+function getAddressComponent(type, addressDetails) {
     const result = addressDetails.results[0].address_components.find(component => component.types.includes(type));
     return result ? result.long_name : null;
 }

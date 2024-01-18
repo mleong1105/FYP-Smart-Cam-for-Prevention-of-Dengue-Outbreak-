@@ -65,7 +65,7 @@ async function scrapeWeatherData(dayIndex, regionKey, locationName) {
       const resLocationName = resLocationData.name;
 
       let regionContainsPart;
-      if (regionKey === "Federal Territory of Kuala Lumpur") {
+      if (regionKey === "Wilayah Persekutuan Kuala Lumpur") {
         regionContainsPart = resLocationName.includes("Kuala Lumpur");
       } else {
         regionContainsPart = resLocationName.includes(regionKey);
@@ -89,18 +89,17 @@ async function scrapeWeatherData(dayIndex, regionKey, locationName) {
         for (let i = dayIndex; i <= maxday; i++) {
           const weatherData = weatherDaily[counter].values;
           const extractData = {
-            meanTemp: weatherData.temperatureAvg,
-            maxTemp: weatherData.temperatureMax,
-            minTemp: weatherData.temperatureMin,
+            "Mean.Temperature.C": weatherData.temperatureAvg,
+            "Maximum.Temperature.C": weatherData.temperatureMax,
+            "MinimumTemperature.C": weatherData.temperatureMin,
 
-            meanWind: weatherData.windSpeedAvg,
-            maxWind: weatherData.windSpeedMax,
-            minWind: weatherData.windSpeedMin,
+            "Mean.Wind.Speed.kmh": weatherData.windSpeedAvg,
+            "Max.Wind.Speed.kmh": weatherData.windSpeedMax,
 
-            totalRainfall: weatherData.rainAccumulationSum,
+            "Daily.Rainfall.Total.mm": weatherData.rainAccumulationSum,
           };
 
-          dailyData[getDayName(dayIndex)] = extractData;
+          dailyData[getDayName(i)] = extractData;
           counter++;
         }
 
@@ -180,16 +179,6 @@ async function weatherDataScrapingJob(admin) {
         const locationName = localityData.name
 
         const status = await runCheck(regionKey, locationName);
-        if (status) {
-          const snapshot = await database.ref(`Weather-data/${year}/${week}/${regionKey}/${locationName}`).once('value');
-          const weatherDataArray = snapshot.val();
-
-          const scriptPath = path.join(__dirname, '../YOLOv8/detectstatic.py');
-          const pythonProcess = spawn('python', [scriptPath], { cwd: path.join(__dirname, '../prediction_model') });
-        }
-        else {
-
-        }
       }
     }
   } catch (snapshotError) {
