@@ -59,6 +59,9 @@ router.post('/addImageReport', upload.single('file'), async (req, res) => {
                     if (administrativeAreaLevel1 === "Wilayah Persekutuan Kuala Lumpur" || "Federal Territory of Kuala Lumpur") {
                         administrativeAreaLevel1 = "Kuala Lumpur";
                     }
+                    if (sublocalityLevel1 == null) {
+                        sublocalityLevel1 = locality
+                    }
                     valueNull = false;
                 } else {
                     valueNull = true;

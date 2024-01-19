@@ -42,6 +42,9 @@ router.post('/getPrediction', async (req, res) => {
                 if (administrativeAreaLevel1 === "Wilayah Persekutuan Kuala Lumpur" || "Federal Territory of Kuala Lumpur") {
                     administrativeAreaLevel1 = "Kuala Lumpur";
                 }
+                if (sublocalityLevel1 == null) {
+                    sublocalityLevel1 = locality
+                }
             } else {
                 valueNull = true;
                 console.error('No results found for the given address.');
