@@ -44,7 +44,6 @@ features = ['lag_dengue_cases', 'lag_temperature', 'Daily_Rainfall_Total_mm', 'M
 
 new_predictions = loaded_model.predict(new_data[features])
 new_data["Predicted Dengue Cases"] = new_predictions
-new_data.to_csv('predicted.csv', index=False)
 
 predicted_json = new_data.to_json(orient='records')
 
