@@ -39,7 +39,7 @@ router.post('/getPrediction', async (req, res) => {
                 sublocalityLevel1 = getAddressComponent("sublocality_level_1", response.data);
                 valueNull = false;
 
-                if (administrativeAreaLevel1 === "Wilayah Persekutuan Kuala Lumpur" || "Federal Territory of Kuala Lumpur") {
+                if (administrativeAreaLevel1 === "Wilayah Persekutuan Kuala Lumpur" || administrativeAreaLevel1 === "Federal Territory of Kuala Lumpur") {
                     administrativeAreaLevel1 = "Kuala Lumpur";
                 }
                 if (sublocalityLevel1 == null) {
@@ -149,6 +149,7 @@ router.post('/getPrediction', async (req, res) => {
 
                     if (predictedData !== null) {
                         try {
+                            console.log(predictedData)
                             await admin.database().ref(`Prediction DCW/${year}/${week}/${administrativeAreaLevel1}/${locality}/${newsublocalityLevel1}`).set({
                                 prediction: predictedData[0]
                             });

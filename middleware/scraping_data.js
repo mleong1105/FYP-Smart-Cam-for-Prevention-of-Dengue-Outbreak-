@@ -65,7 +65,7 @@ async function scrapeWeatherData(dayIndex, regionKey, locationName) {
       const resLocationName = resLocationData.name;
 
       let regionContainsPart;
-      if (regionKey === "Wilayah Persekutuan Kuala Lumpur" || "Federal Territory of Kuala Lumpur") {
+      if (regionKey === "Wilayah Persekutuan Kuala Lumpur" || regionKey === "Federal Territory of Kuala Lumpur") {
         regionContainsPart = resLocationName.includes("Kuala Lumpur");
       } else {
         regionContainsPart = resLocationName.includes(regionKey);
@@ -126,7 +126,7 @@ async function runCheck(regionKey, locationName, database) {
     const dayName = getDayName(day);
 
     return new Promise(async (resolve) => {
-      if (regionKey === "Wilayah Persekutuan Kuala Lumpur" || "Federal Territory of Kuala Lumpur") {
+      if (regionKey === "Wilayah Persekutuan Kuala Lumpur" || regionKey === "Federal Territory of Kuala Lumpur") {
         regionKey = "Kuala Lumpur"
       }
       const snapshot = await database.ref(`Weather-data/${year}/${week}/${regionKey}/${locationName}/${dayName}`).once('value');
@@ -177,7 +177,7 @@ async function weatherDataScrapingJob(admin) {
     const regionsData = regionSnapshot.val();
 
     for (const [regionKey, regionData] of Object.entries(regionsData)) {
-      if (regionKey === "Wilayah Persekutuan Kuala Lumpur" || "Federal Territory of Kuala Lumpur") {
+      if (regionKey === "Wilayah Persekutuan Kuala Lumpur" || regionKey === "Federal Territory of Kuala Lumpur") {
         regionKey = "Kuala Lumpur"
       }
       for (const [localityKey, localityData] of Object.entries(regionData)) {

@@ -129,7 +129,7 @@ router.post('/accountsignup', async (req, res) => {
                         console.log(locality)
                         const sublocalityLevel1 = getAddressComponent("sublocality_level_1", response.data);
         
-                        if (regionKey === "Wilayah Persekutuan Kuala Lumpur" || "Federal Territory of Kuala Lumpur") {
+                        if (regionKey === "Wilayah Persekutuan Kuala Lumpur" || regionKey === "Federal Territory of Kuala Lumpur") {
                             regionKey = "Kuala Lumpur";
                         }                        
                         const databaseRef = admin.database().ref(`Location/${administrativeAreaLevel1}/${locality}`).set({
