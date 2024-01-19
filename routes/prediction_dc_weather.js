@@ -163,8 +163,8 @@ router.post('/getPrediction', async (req, res) => {
                 }
 
             } else {
-                console.log(`Prediction data exist: ${predictionsnapshot.prediction}`)
-                predictedData = predictionsnapshot.prediction
+                console.log(`Prediction data exist: ${predictionsnapshot.val().prediction}`)
+                predictedData = predictionsnapshot.val().prediction
             }
 
             try {
@@ -190,10 +190,10 @@ router.post('/getPrediction', async (req, res) => {
                     });
                 }
 
-                if (predictedData[0]["Predicted Dengue Cases"] > 5) {
+                if (predictedData["Predicted Dengue Cases"] > 5) {
                     status = 3
                 }
-                else if (predictedData[0]["Predicted Dengue Cases"] > 1 ) {
+                else if (predictedData["Predicted Dengue Cases"] > 1 ) {
                     status = 2
                 }
                 else {
@@ -209,7 +209,7 @@ router.post('/getPrediction', async (req, res) => {
                     num_habitat: num_habitat, 
                     total_detected_object: total_detected_object, 
                     img_url: img_url,
-                    predictedData: predictedData[0]
+                    predictedData: predictedData
                 })
             } catch (error) {
                 console.error('Error fetching image data:', error);
