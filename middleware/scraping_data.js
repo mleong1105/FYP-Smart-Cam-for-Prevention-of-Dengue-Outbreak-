@@ -52,6 +52,7 @@ async function scrapeWeatherData(dayIndex, regionName, locationName, routeName, 
     let dailyData = null;
 
     const combineAddr = `${routeName}, ${locationName}, ${regionName}`
+    const sanitizedRoute = routeName.replace(/\//g, '_');
     
     let resLocationName, resData
     let resstatus, weatherstatus
@@ -187,12 +188,13 @@ async function runCheck(regionName, locationName, routeName, routecoord, databas
     const week = getWeekNumber(today, timeZone);
     const day = today.day();
     const dayName = getDayName(day);
+    const sanitizedRoute = routeName.replace(/\//g, '_');
 
     return new Promise(async (resolve) => {
       if (regionName === "Wilayah Persekutuan Kuala Lumpur" || regionName === "Federal Territory of Kuala Lumpur") {
         regionName = "Kuala Lumpur"
       }
-      const snapshot = await database.ref(`Weather-data/${year}/${week}/${regionName}/${locationName}/${routeName}/${dayName}`).once('value');
+      const snapshot = await database.ref(`Weather-data/${year}/${week}/${regionName}/${locationName}/${sanitizedRoute}/${dayName}`).once('value');
   
       if (!snapshot.exists()) {
         const weatherResponse = await scrapeWeatherData(day, regionName, locationName, routeName, routecoord);
@@ -201,7 +203,7 @@ async function runCheck(regionName, locationName, routeName, routecoord, databas
   
         if (resstatus && dailyData !== null) {
           try {
-            await database.ref(`Weather-data/${year}/${week}/${regionName}/${locationName}/${routeName}`).update(dailyData);
+            await database.ref(`Weather-data/${year}/${week}/${regionName}/${locationName}/${sanitizedRoute}`).update(dailyData);
             console.log(`Location: ${routeName}, ${locationName}, ${regionName}. Weather data scraped and stored successfully`);
             resolve(true);
           } catch (error) {
@@ -247,8 +249,8 @@ async function weatherDataScrapingJob(admin) {
       for (const [localityKey, localityData] of Object.entries(regionData)) {
         let localityName = localityKey
         for (const [routeKey, routeData] of Object.entries(localityData)) {
-          let routeName = routeKey
-          const status = await runCheck(regionName, localityName, routeName, routeData.coordinateBU, database);
+          const originalRoute = routeKey.replace(/_/g, '/');
+          const status = await runCheck(regionName, localityName, originalRoute, routeData.coordinateBU, database);
         }
       }
     }

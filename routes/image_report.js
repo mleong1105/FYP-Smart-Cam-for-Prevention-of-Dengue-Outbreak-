@@ -5,6 +5,7 @@ const { spawn } = require('child_process');
 const path = require('path');
 const multer = require('multer');
 const axios = require('axios')
+const moment = require('moment-timezone');
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
@@ -94,7 +95,10 @@ router.post('/addImageReport', upload.single('file'), async (req, res) => {
             pythonProcess.on('close', (code) => {
                 console.log(`Python script exited with code ${code}`);
                 if (imageUrl) {
-                    const currentTime = admin.database.ServerValue.TIMESTAMP;
+                    const timeZone = 'Asia/Kuala_Lumpur';
+
+                    const currentTime = moment().tz(timezone).format();
+                    const serverTimestamp = admin.database.ServerValue.TIMESTAMP;
                     const imageStatus = numObjects > 0;
                     const manualAnnotationStatus = !imageStatus;
             
@@ -102,7 +106,8 @@ router.post('/addImageReport', upload.single('file'), async (req, res) => {
                         coordinates: coordinates,
                         imageUrl: imageUrl,
                         updaterUid: userId,
-                        updateTime: currentTime,
+                        serverTimestamp: serverTimestamp,
+                        currentTime: currentTime,
                         detectedObjects: numObjects,
                         imageStatus: imageStatus ? "VALID" : "INVALID",
                         manualAnnotationStatus: manualAnnotationStatus,
@@ -112,7 +117,8 @@ router.post('/addImageReport', upload.single('file'), async (req, res) => {
                     };
 
                     new Promise((resolve, reject) => {
-                        const updateRef = admin.database().ref(`Image Reports/${administrativeAreaLevel1}/${locality}/${route}`).push();
+                        const sanitizedRoute = route.replace(/\//g, '_');
+                        const updateRef = admin.database().ref(`Image Reports/${administrativeAreaLevel1}/${locality}/${sanitizedRoute}`).push();
                         updateRef.set(updateData, (error) => {
                             if (error) {
                                 reject(error);

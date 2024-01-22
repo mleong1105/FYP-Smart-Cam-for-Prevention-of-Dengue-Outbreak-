@@ -60,6 +60,8 @@ router.post('/getPrediction', async (req, res) => {
             console.error('Error fetching data from Google Maps API:', error.message);
         }
 
+        const sanitizedRoute = route.replace(/\//g, '_');
+
         if (country === "Malaysia" && !valueNull) {
             
             const today = moment().tz(timeZone);
@@ -71,10 +73,10 @@ router.post('/getPrediction', async (req, res) => {
 
             let predictedData;
 
-            const locationsnapshot = await admin.database().ref(`Location/${administrativeAreaLevel1}/${locality}/${route}`).once('value');
+            const locationsnapshot = await admin.database().ref(`Location/${administrativeAreaLevel1}/${locality}/${sanitizedRoute}`).once('value');
             if (!locationsnapshot.exists()) {
                 if (country === "Malaysia") {
-                    const databaseRef = admin.database().ref(`Location/${administrativeAreaLevel1}/${locality}/${route}`).set({
+                    const databaseRef = admin.database().ref(`Location/${administrativeAreaLevel1}/${locality}/${sanitizedRoute}`).set({
                         name: formatAddr,
                         coordinateBU: `${lat}, ${long}`
                     });
@@ -85,7 +87,7 @@ router.post('/getPrediction', async (req, res) => {
                 }
             }
             
-            const predictionsnapshot = await admin.database().ref(`Prediction DCW/${year}/${week}/${administrativeAreaLevel1}/${locality}/${route}/${dayName}`).once('value');
+            const predictionsnapshot = await admin.database().ref(`Prediction DCW/${year}/${week}/${administrativeAreaLevel1}/${locality}/${sanitizedRoute}/${dayName}`).once('value');
             if (!predictionsnapshot.exists()) {
                 let weatherdayData = {}
                 try{
@@ -104,7 +106,7 @@ router.post('/getPrediction', async (req, res) => {
                         
                         // get weather data
                         try {
-                            const weathersnapshot = await admin.database().ref(`Weather-data/${year}/${week}/${administrativeAreaLevel1}/${locality}/${route}/${dayName}`).once('value');
+                            const weathersnapshot = await admin.database().ref(`Weather-data/${year}/${week}/${administrativeAreaLevel1}/${locality}/${sanitizedRoute}/${dayName}`).once('value');
                             weathersnapshot.forEach(daySnapshot => {
                                 const weatherInfo = daySnapshot.key;
                                 const weatherVal = daySnapshot.val();
@@ -117,31 +119,38 @@ router.post('/getPrediction', async (req, res) => {
     
                         // get historical dengue case
                         try {
-                            const response = await axios.get("https://idengue.mysa.gov.my/hotspotutama.php")
-                            const html = response.data;        
-                            const $ = cheerio.load(html);
-                            const trElements = $('#myTable tr');
-                            let lagDC = 0;
-        
-                                trElements.each((index, trElement) => {
-                                    const thElements = $(trElement).find('th');
-                                    const regionTh = $(thElements[1]).text().trim().toLowerCase();
-                                    if (regionTh === administrativeAreaLevel1.toLowerCase()) {
-                                        const thirdTh = $(thElements[2]).text().trim().toLowerCase();
-                                        if (thirdTh === locality.toLowerCase()) {
-                                            const fourthTh = $(thElements[3]).text().trim();
-                                            lagDC = parseInt(fourthTh);
-                                            return false;
-                                        }
-                                    }
-                                });
-        
-                            weatherdayData["lag_dengue_cases"] = lagDC
-                            weatherdayData["lag_temperature"] = weatherdayData["Mean_Temperature_C"]
+                            const paramaddr = `${route}, ${sublocality}, ${locality}, ${administrativeAreaLevel1}, ${country}`
+                            const response = await axios.get(`https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?SingleLine=${encodeURIComponent(paramaddr)}&f=json&outSR=%7B%22wkid%22%3A102100%7D&outFields=*&distance=50000&location=%7B%22x%22%3A11311202.960992364%2C%22y%22%3A342574.4417719683%2C%22spatialReference%22%3A%7B%22wkid%22%3A102100%7D%7D&maxLocations=6`)
+                            const resData = response.data
+
+                            const locCandidates = resData.candidates[0]
+                            const locAttr = locCandidates.attributes
+                            const locExtent = locCandidates.extent
+                            
+                            if (route === locAttr.StAddr || route === locAttr.City || route === locAttr.Subregion || route === locAttr.District || route === locAttr.MetroArea) {
+                                try {
+                                    const Xmin = locExtent.xmin
+                                    const Xmax = locExtent.xmax
+                                    const Ymin = locExtent.ymin
+                                    const Ymax = locExtent.ymax
+
+                                    const response = await axios.get(`https://mygis.mysa.gov.my/erica1/rest/services/iDengue/WM_idengue/MapServer/dynamicLayer/query?f=json&returnGeometry=true&spatialRel=esriSpatialRelIntersects&geometry=%7B%22xmin%22%3A${Xmin}%2C%22ymin%22%3A${Ymin}%2C%22xmax%22%3A${Xmax}%2C%22ymax%22%3A${Ymax}%2C%22spatialReference%22%3A%7B%22wkid%22%3A102100%7D%7D&geometryType=esriGeometryEnvelope&inSR=102100&outFields=SPWD.D_WABAK_KLUSTER.OBJECTID%2CSPWD.D_WABAK_KLUSTER.TRK_SIS_WABAK%2CSPWD.D_WABAK_KLUSTER.NO_KLUSTER%2CSPWD.D_WABAK_KLUSTER.SHAPE%2CSPWD.AVT_WABAK_IDENGUE_NODM.NO_KLUSTER%2CSPWD.AVT_WABAK_IDENGUE_NODM.TRK_SIS_WABAK%2CSPWD.AVT_WABAK_IDENGUE_NODM.NEGERI%2CSPWD.AVT_WABAK_IDENGUE_NODM.LOKALITI%2CSPWD.AVT_WABAK_IDENGUE_NODM.TOTAL_KES&outSR=102100&layer=%7B%22source%22%3A%7B%22type%22%3A%22mapLayer%22%2C%22mapLayerId%22%3A4%7D%7D`)
+                                    const dengueData = response.data
+
+                                    const dengueAttr = dengueData.features[0].attributes
+                                    weatherdayData["lag_dengue_cases"] = dengueAttr["SPWD.AVT_WABAK_IDENGUE_NODM.TOTAL_KES"]
+                                } catch (error) {
+                                    console.error("GET request for dengue historical data failed:", error)
+                                }
+                            } else {
+                                weatherdayData["lag_dengue_cases"] = 0
+                                console.error("Location not match for dengue historical data")
+                            }
                         } catch (error) {
                             console.error("Historical dengue cases unable to get from website:", error)
                         }
-    
+                        
+                        weatherdayData["lag_temperature"] = weatherdayData["Mean_Temperature_C"]
                         // execute prediction script
                         const scriptPath = path.join(__dirname, '../prediction_model/predict.py');
                         const pythonArgs = {
@@ -157,8 +166,7 @@ router.post('/getPrediction', async (req, res) => {
                             "Mean_Temperature_C": [weatherdayData["Mean_Temperature_C"]],
                             "Mean_Wind_Speed_kmh": [weatherdayData["Mean_Wind_Speed_kmh"]],
                             "MinimumTemperature_C": [weatherdayData["MinimumTemperature_C"]],
-                            // "lag_dengue_cases": weatherdayData["lag_dengue_cases"],
-                            "lag_dengue_cases": [3],
+                            "lag_dengue_cases": weatherdayData["lag_dengue_cases"],
                             "lag_temperature": [weatherdayData["lag_temperature"]]  
                         }
 
@@ -200,7 +208,7 @@ router.post('/getPrediction', async (req, res) => {
     
                         if (predictedData !== null) {
                             try {
-                                await admin.database().ref(`Prediction DCW/${year}/${week}/${administrativeAreaLevel1}/${locality}/${route}/${dayName}`).set({
+                                await admin.database().ref(`Prediction DCW/${year}/${week}/${administrativeAreaLevel1}/${locality}/${sanitizedRoute}/${dayName}`).set({
                                     prediction: predictedData[0]
                                 });
                             }
@@ -225,7 +233,7 @@ router.post('/getPrediction', async (req, res) => {
             try {
                 const imgsnapshot = await admin
                     .database()
-                    .ref(`Image Reports/${year}/${week}/${administrativeAreaLevel1}/${locality}/${route}`)
+                    .ref(`Image Reports/${administrativeAreaLevel1}/${locality}/${sanitizedRoute}`)
                     .once('value');
             
                 const img_url = []

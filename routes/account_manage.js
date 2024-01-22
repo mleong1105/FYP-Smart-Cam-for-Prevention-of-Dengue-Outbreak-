@@ -4,7 +4,7 @@ const pool = require('../db/mssql');
 const sql = require("mssql")
 const { exec } = require('child_process');
 
-router.post('/api/run-prediction', async (req, res) => {
+router.post('/useradd', async (req, res) => {
   try {
     const { argument1, argument2 } = req.body;
 

@@ -159,8 +159,8 @@ router.post('/accountsignup', async (req, res) => {
                                     route = locality
                                 }
                             }
-                            
-                            const databaseRef = admin.database().ref(`Location/${administrativeAreaLevel1}/${locality}/${route}`).set({
+                            const sanitizedRoute = route.replace(/\//g, '_');
+                            const databaseRef = admin.database().ref(`Location/${administrativeAreaLevel1}/${locality}/${sanitizedRoute}`).set({
                                 name: formatted_address,
                                 coordinateBU: `${newlat}, ${newlong}`
                             });
