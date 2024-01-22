@@ -2,9 +2,9 @@ const admin = require('firebase-admin');
 const sdk = require('api')('@climacell-docs/v4.0.1#2kzjaw32flr3g5k2l');
 const moment = require('moment-timezone');
 const { spawn } = require('child_process');
+const axios = require('axios')
 
 let database;
-const timeZone = 'Asia/Kuala_Lumpur';
 
 // async function getLocationKey(apiKey, regionKey, locationName, locationKey) {  
 //     if (locationKey === null) {
@@ -47,32 +47,94 @@ const timeZone = 'Asia/Kuala_Lumpur';
 //     }
 // }
 
-async function scrapeWeatherData(dayIndex, regionKey, locationName) {  
+async function scrapeWeatherData(dayIndex, regionName, locationName, routeName, routecoord) {  
   return new Promise(async (resolve) => {
-    let resstatus = false;
     let dailyData = null;
 
+    const combineAddr = `${routeName}, ${locationName}, ${regionName}`
+    
+    let resLocationName, resData
+    let resstatus, weatherstatus
+
     const options = { method: 'GET', headers: { accept: 'application/json' } };
-    const url = `https://api.tomorrow.io/v4/weather/forecast?location=${encodeURIComponent(locationName)}&timesteps=1d&units=metric&apikey=0JFemnJdgenKylKTrhuIKnHt99uvXoC1`;
+    const url = `https://api.tomorrow.io/v4/weather/forecast?location=${encodeURIComponent(combineAddr)}&timesteps=1d&units=metric&apikey=0JFemnJdgenKylKTrhuIKnHt99uvXoC1`;
 
     try {
       const response = await fetch(url, options);
-      const data = await response.json();
+      resData = await response.json();
 
       console.log("Getting data from outsource");
 
-      const resLocationData = data.location;
-      const resLocationName = resLocationData.name;
+      const resLocationData = resData.location;
+      resLocationName = resLocationData.name;
+      weatherstatus = true;
+    } catch (error) {
+      console.error(error);
+      weatherstatus = false;
+    }
 
-      let regionContainsPart;
-      if (regionKey === "Wilayah Persekutuan Kuala Lumpur" || regionKey === "Federal Territory of Kuala Lumpur") {
-        regionContainsPart = resLocationName.includes("Kuala Lumpur");
-      } else {
-        regionContainsPart = resLocationName.includes(regionKey);
+    if (!weatherstatus && resData !== null) {
+      const backupurl = `https://api.tomorrow.io/v4/weather/forecast?location=${encodeURIComponent(routecoord)}&timesteps=1d&units=metric&apikey=0JFemnJdgenKylKTrhuIKnHt99uvXoC1`;
+  
+      try {
+        const response = await fetch(url, options);
+        resData = await response.json();
+  
+        console.log("Getting data from outsource");
+      } catch (error) {
+        console.error(error);
+        resstatus = false
+      }
+    }
+
+    if (resData !== null) {
+      let administrativeAreaLevel1, locality, sublocality, route;
+      let regionContainsPart, locationContainsPart, routeContainsPart;
+
+      if (weatherstatus === true && resLocationName !== null) {
+        try {
+          const apiKey = 'AIzaSyApYzXx3126zpxJdnRSxo7r1EGZQbR2lG8';
+          const apiUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(resLocationName)}&key=${apiKey}`;
+  
+          const response = await axios.get(apiUrl);
+          const results = response.data.results;
+  
+          if (results && results.length > 0) {
+              const country = getAddressComponent("country", response.data);
+  
+              if (country === "Malaysia") {
+                  administrativeAreaLevel1 = getAddressComponent("administrative_area_level_1", response.data);
+                  locality = getAddressComponent("locality", response.data);
+                  route = getAddressComponent("route", response.data);
+                  sublocality = getAddressComponent("sublocality_level_1", response.data)
+  
+                  if (administrativeAreaLevel1 === "Wilayah Persekutuan Kuala Lumpur" || administrativeAreaLevel1 === "Federal Territory of Kuala Lumpur") {
+                      administrativeAreaLevel1 = "Kuala Lumpur";
+                  }
+  
+                  if (route === null) {
+                    if (sublocality === null) {
+                      route = locality
+                    } else {
+                      route = sublocality
+                    }
+                  }
+              } else {
+                  console.log("We only support Malaysia location.");
+              }
+          } else {
+              console.error('No results found for the given address.');
+          }
+        } catch (error) {
+          console.error('Error fetching data from Google Maps API:', error.message);
+        }
+
+        regionContainsPart = administrativeAreaLevel1 === regionName;
+        locationContainsPart = locality === locationName;
+        routeContainsPart = route === routeName;
       }
 
-      const locationContainsPart = resLocationName.includes(locationName);
-      const isExactLocation = regionContainsPart && locationContainsPart;
+      let isExactLocation = weatherstatus ? regionContainsPart && locationContainsPart && routeContainsPart : true
 
       if (isExactLocation) {
         let maxday;
@@ -84,7 +146,7 @@ async function scrapeWeatherData(dayIndex, regionKey, locationName) {
 
         dailyData = {};
         let counter = 0;
-        const weatherDaily = data.timelines.daily;
+        const weatherDaily = resData.timelines.daily;
 
         for (let i = dayIndex; i <= maxday; i++) {
           const weatherData = weatherDaily[counter].values;
@@ -108,55 +170,56 @@ async function scrapeWeatherData(dayIndex, regionKey, locationName) {
         console.log("Location does not match");
         resstatus = false;
       }
-    } catch (error) {
-      console.error(error);
+    } else {
+      console.log("Weather data is not found")
       resstatus = false;
     }
-
     resolve({ resstatus, dailyData });
   });
 }
 
-async function runCheck(regionKey, locationName, database) {
+async function runCheck(regionName, locationName, routeName, routecoord, database) {
+    const timeZone = 'Asia/Kuala_Lumpur';
+
     console.log("Checking existing data")
     const today = moment().tz(timeZone);
     const year = today.year();
-    const week = getWeekNumber(today);
+    const week = getWeekNumber(today, timeZone);
     const day = today.day();
     const dayName = getDayName(day);
 
     return new Promise(async (resolve) => {
-      if (regionKey === "Wilayah Persekutuan Kuala Lumpur" || regionKey === "Federal Territory of Kuala Lumpur") {
-        regionKey = "Kuala Lumpur"
+      if (regionName === "Wilayah Persekutuan Kuala Lumpur" || regionName === "Federal Territory of Kuala Lumpur") {
+        regionName = "Kuala Lumpur"
       }
-      const snapshot = await database.ref(`Weather-data/${year}/${week}/${regionKey}/${locationName}/${dayName}`).once('value');
+      const snapshot = await database.ref(`Weather-data/${year}/${week}/${regionName}/${locationName}/${routeName}/${dayName}`).once('value');
   
       if (!snapshot.exists()) {
-        const weatherResponse = await scrapeWeatherData(day, regionKey, locationName);
+        const weatherResponse = await scrapeWeatherData(day, regionName, locationName, routeName, routecoord);
         const resstatus = weatherResponse.resstatus;
         const dailyData = weatherResponse.dailyData;
   
         if (resstatus && dailyData !== null) {
           try {
-            await database.ref(`Weather-data/${year}/${week}/${regionKey}/${locationName}`).update(dailyData);
-            console.log('Location: ' + locationName + ', ' + regionKey + '. Weather data scraped and stored successfully');
+            await database.ref(`Weather-data/${year}/${week}/${regionName}/${locationName}/${routeName}`).update(dailyData);
+            console.log(`Location: ${routeName}, ${locationName}, ${regionName}. Weather data scraped and stored successfully`);
             resolve(true);
           } catch (error) {
             console.error('Error updating daily data in the database:', error.message);
             resolve(false);
           }
         } else {
-          console.log('Location: ' + locationName + ', ' + regionKey + '. Weather Data Array is null, database is not updated');
+          console.log(`Location: ${routeName}, ${locationName}, ${regionName}. Weather Data Array is null, database is not updated`);
           resolve(false);
         }
       } else {
-        console.log('Location: ' + locationName + ', ' + regionKey + '. Weather data already exists');
+        console.log(`Location: ${routeName}, ${locationName}, ${regionName}. Weather data already exists`);
         resolve(true);
       }
     });
 }
 
-function getWeekNumber(date) {
+function getWeekNumber(date, timeZone) {
   const d = moment.tz(date, timeZone);
   d.hours(0).minutes(0).seconds(0).milliseconds(0);
   d.date(d.date() + 4 - (d.day() || 7));
@@ -177,19 +240,26 @@ async function weatherDataScrapingJob(admin) {
     const regionsData = regionSnapshot.val();
 
     for (const [regionKey, regionData] of Object.entries(regionsData)) {
+      let regionName = regionKey
       if (regionKey === "Wilayah Persekutuan Kuala Lumpur" || regionKey === "Federal Territory of Kuala Lumpur") {
-        regionKey = "Kuala Lumpur"
+        regionName = "Kuala Lumpur"
       }
       for (const [localityKey, localityData] of Object.entries(regionData)) {
-        console.log(localityKey, localityData)
-        const locationName = localityData.name
-
-        const status = await runCheck(regionKey, locationName, database);
+        let localityName = localityKey
+        for (const [routeKey, routeData] of Object.entries(localityData)) {
+          let routeName = routeKey
+          const status = await runCheck(regionName, localityName, routeName, routeData.coordinateBU, database);
+        }
       }
     }
   } catch (snapshotError) {
     console.error(`Error fetching region snapshot: ${snapshotError}`);
   }
+}
+
+function getAddressComponent(type, addressDetails) {
+  const result = addressDetails.results[0].address_components.find(component => component.types.includes(type));
+  return result ? result.long_name : null;
 }
 
 module.exports = {

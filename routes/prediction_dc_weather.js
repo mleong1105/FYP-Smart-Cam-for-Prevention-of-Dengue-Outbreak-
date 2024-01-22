@@ -3,7 +3,7 @@ const router = express.Router();
 const admin = require('firebase-admin');
 const axios = require('axios')
 const cheerio = require('cheerio');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 const path = require('path');
 const { runCheck } = require('../middleware/scraping_data.js');
 const moment = require('moment-timezone');
@@ -15,7 +15,7 @@ router.post('/getPrediction', async (req, res) => {
         const location = req.body.location
         const [latStr, longStr] = location.split(', ');
         const lat = parseFloat(latStr);
-        const long = parseFloat(longStr);        
+        const long = parseFloat(longStr);  
 
         if (!location) {
             res.status(400).json({ status: 'error', message: 'Missing parameters.' });
@@ -24,7 +24,7 @@ router.post('/getPrediction', async (req, res) => {
 
         const apiKey = 'AIzaSyApYzXx3126zpxJdnRSxo7r1EGZQbR2lG8';
         const apiUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${long}&key=${apiKey}`;
-        let formatAddr, administrativeAreaLevel1, locality, sublocalityLevel1, country
+        let formatAddr, administrativeAreaLevel1, locality, route, sublocality, country
         let valueNull;
 
         try {
@@ -36,14 +36,20 @@ router.post('/getPrediction', async (req, res) => {
                 country = getAddressComponent("country", response.data);
                 administrativeAreaLevel1 = getAddressComponent("administrative_area_level_1", response.data);
                 locality = getAddressComponent("locality", response.data);
-                sublocalityLevel1 = getAddressComponent("sublocality_level_1", response.data);
+                route = getAddressComponent("route", response.data);
+                sublocality = getAddressComponent("sublocality_level_1", response.data);
                 valueNull = false;
 
                 if (administrativeAreaLevel1 === "Wilayah Persekutuan Kuala Lumpur" || administrativeAreaLevel1 === "Federal Territory of Kuala Lumpur") {
                     administrativeAreaLevel1 = "Kuala Lumpur";
                 }
-                if (sublocalityLevel1 == null) {
-                    sublocalityLevel1 = locality
+                if (route === null) {
+                    if (sublocality === null) {
+                        route = locality
+                    }
+                    else {
+                        route = sublocality
+                    }
                 }
             } else {
                 valueNull = true;
@@ -54,7 +60,6 @@ router.post('/getPrediction', async (req, res) => {
             console.error('Error fetching data from Google Maps API:', error.message);
         }
 
-        console.log(country, administrativeAreaLevel1,locality)
         if (country === "Malaysia" && !valueNull) {
             
             const today = moment().tz(timeZone);
@@ -63,104 +68,153 @@ router.post('/getPrediction', async (req, res) => {
             const week = getWeekNumber(today);
             const day = today.day();
             const dayName = getDayName(day);
-            let newsublocalityLevel1;
 
-            var predictedData;
-            
-            if (sublocalityLevel1 === null) {
-                newsublocalityLevel1 = locality
-            }
-            else {
-                newsublocalityLevel1 =sublocalityLevel1
-            }
+            let predictedData;
 
-            const locationsnapshot = await admin.database().ref(`Location/${administrativeAreaLevel1}/${locality}`).once('value');
+            const locationsnapshot = await admin.database().ref(`Location/${administrativeAreaLevel1}/${locality}/${route}`).once('value');
             if (!locationsnapshot.exists()) {
-                await admin.database().ref(`Location/${administrativeAreaLevel1}/${locality}`).set({
-                    name: locality
-                })
+                if (country === "Malaysia") {
+                    const databaseRef = admin.database().ref(`Location/${administrativeAreaLevel1}/${locality}/${route}`).set({
+                        name: formatAddr,
+                        coordinateBU: `${lat}, ${long}`
+                    });
+                    console.log('Database updated successfully.');
+                }
+                else {
+                    console.log("We only support Malaysia location.")
+                }
             }
             
-            const predictionsnapshot = await admin.database().ref(`Prediction DCW/${year}/${week}/${administrativeAreaLevel1}/${locality}/${newsublocalityLevel1}`).once('value');
+            const predictionsnapshot = await admin.database().ref(`Prediction DCW/${year}/${week}/${administrativeAreaLevel1}/${locality}/${route}/${dayName}`).once('value');
             if (!predictionsnapshot.exists()) {
-
-                const status = await runCheck(administrativeAreaLevel1, locality, admin.database())
-                if (status){
-                    const weathersnapshot = await admin.database().ref(`Weather-data/${year}/${week}/${administrativeAreaLevel1}/${locality}/${dayName}`).once('value');
-    
-                    const weathertimeobj = getStartDate(year, week, dayName);
-                    const weatherdayData = {
-                        "Year": weathertimeobj.year(),
-                        "Month": weathertimeobj.month() + 1,
-                        "Day": weathertimeobj.day(),
-                        "Region": administrativeAreaLevel1,
-                        "Location": locality,
-                        "SubLocation": newsublocalityLevel1
-                    };
-                    
-                    weathersnapshot.forEach(daySnapshot => {
-                        const weatherInfo = daySnapshot.key;
-                        const weatherVal = daySnapshot.val();
+                let weatherdayData = {}
+                try{
+                    const status = await runCheck(administrativeAreaLevel1, locality, route, `${lat}, ${long}`, admin.database())
+                    if (status){
                         
-                        weatherdayData[weatherInfo] = weatherVal;
-                    });
-
-                    try {
-                        const response = await axios.get("https://idengue.mysa.gov.my/hotspotutama.php")
-                        const html = response.data;        
-                        const $ = cheerio.load(html);
-                        const trElements = $('#myTable tr');
-                        let lagDC = 0;
-    
-                            trElements.each((index, trElement) => {
-                                const thElements = $(trElement).find('th');
-                                const regionTh = $(thElements[1]).text().trim().toLowerCase();
-                                if (regionTh === administrativeAreaLevel1.toLowerCase()) {
-                                    const thirdTh = $(thElements[2]).text().trim().toLowerCase();
-                                    if (thirdTh === locality.toLowerCase()) {
-                                        const fourthTh = $(thElements[3]).text().trim();
-                                        lagDC = parseInt(fourthTh);
-                                        return false;
-                                    }
-                                }
-                            });
-    
-                        weatherdayData["lag_dengue_cases"] = lagDC
-                        weatherdayData["lag_temperature"] = weatherdayData["Mean_Temperature_C"]
-
-                        const scriptPath = path.join(__dirname, '../prediction_model/predict.py');
-                        predictedData = await new Promise((resolve, reject) => {
-                            exec(`python "${scriptPath}" ${weatherdayData["Year"]} ${weatherdayData["Month"]} ${weatherdayData["Day"]} "${weatherdayData["Region"]}" "${weatherdayData["Location"]}" "${weatherdayData["SubLocation"]}" "${weatherdayData["Daily_Rainfall_Total_mm"]}" "${weatherdayData["Max_Wind_Speed_kmh"]}" "${weatherdayData["Maximum_Temperature_C"]}" "${weatherdayData["Mean_Temperature_C"]}" "${weatherdayData["Mean_Wind_Speed_kmh"]}" "${weatherdayData["MinimumTemperature_C"]}" "${weatherdayData["lag_dengue_cases"]}" "${weatherdayData["lag_temperature"]}"`, (error, stdout, stderr) => {
-                                if (error) {
-                                    console.error('Error executing script:', error);
-                                    res.status(500).send('Error executing script:' + error);
-                                    reject(error);
-                                }
-                    
-                                const predictedJson = stdout;
-                                const parsedData = JSON.parse(predictedJson);
-                                resolve(parsedData);
-                            });
-                        });
-                    } catch (error) {
-                        predictedData = null
-                        console.error('Error fetching HTML:', error);
-                    };
-
-                    if (predictedData !== null) {
+                        const weathertimeobj = getStartDate(year, week, dayName);
+                        weatherdayData = {
+                            "Year": weathertimeobj.year(),
+                            "Month": weathertimeobj.month() + 1,
+                            "Day": weathertimeobj.day(),
+                            "Region": administrativeAreaLevel1,
+                            "Location": locality,
+                            "SubLocation": route
+                        };
+                        
+                        // get weather data
                         try {
-                            console.log(predictedData)
-                            await admin.database().ref(`Prediction DCW/${year}/${week}/${administrativeAreaLevel1}/${locality}/${newsublocalityLevel1}`).set({
-                                prediction: predictedData[0]
+                            const weathersnapshot = await admin.database().ref(`Weather-data/${year}/${week}/${administrativeAreaLevel1}/${locality}/${route}/${dayName}`).once('value');
+                            weathersnapshot.forEach(daySnapshot => {
+                                const weatherInfo = daySnapshot.key;
+                                const weatherVal = daySnapshot.val();
+                                
+                                weatherdayData[weatherInfo] = weatherVal;
                             });
+                        } catch (error) {
+                            console.error("Weather data unable to get from database: ", error)
                         }
-                        catch (error) {
-                            console.error("Predicted Data not updated, error database")
+    
+                        // get historical dengue case
+                        try {
+                            const response = await axios.get("https://idengue.mysa.gov.my/hotspotutama.php")
+                            const html = response.data;        
+                            const $ = cheerio.load(html);
+                            const trElements = $('#myTable tr');
+                            let lagDC = 0;
+        
+                                trElements.each((index, trElement) => {
+                                    const thElements = $(trElement).find('th');
+                                    const regionTh = $(thElements[1]).text().trim().toLowerCase();
+                                    if (regionTh === administrativeAreaLevel1.toLowerCase()) {
+                                        const thirdTh = $(thElements[2]).text().trim().toLowerCase();
+                                        if (thirdTh === locality.toLowerCase()) {
+                                            const fourthTh = $(thElements[3]).text().trim();
+                                            lagDC = parseInt(fourthTh);
+                                            return false;
+                                        }
+                                    }
+                                });
+        
+                            weatherdayData["lag_dengue_cases"] = lagDC
+                            weatherdayData["lag_temperature"] = weatherdayData["Mean_Temperature_C"]
+                        } catch (error) {
+                            console.error("Historical dengue cases unable to get from website:", error)
                         }
+    
+                        // execute prediction script
+                        const scriptPath = path.join(__dirname, '../prediction_model/predict.py');
+                        const pythonArgs = {
+                            "Year": [weatherdayData["Year"]],
+                            "Month": [weatherdayData["Month"]],
+                            "Day": [weatherdayData["Day"]],
+                            "Region": [weatherdayData["Region"]],
+                            "Location": [weatherdayData["Location"]],
+                            "SubLocation": [weatherdayData["SubLocation"]],
+                            "Daily_Rainfall_Total_mm": [weatherdayData["Daily_Rainfall_Total_mm"]],
+                            "Max_Wind_Speed_kmh": [weatherdayData["Max_Wind_Speed_kmh"]],
+                            "Maximum_Temperature_C": [weatherdayData["Maximum_Temperature_C"]],
+                            "Mean_Temperature_C": [weatherdayData["Mean_Temperature_C"]],
+                            "Mean_Wind_Speed_kmh": [weatherdayData["Mean_Wind_Speed_kmh"]],
+                            "MinimumTemperature_C": [weatherdayData["MinimumTemperature_C"]],
+                            // "lag_dengue_cases": weatherdayData["lag_dengue_cases"],
+                            "lag_dengue_cases": [3],
+                            "lag_temperature": [weatherdayData["lag_temperature"]]  
+                        }
+
+                        const jsonArgs = JSON.stringify(pythonArgs);
+                        
+                        try{
+                            predictedData = await new Promise((resolve, reject) => {
+                                const pythonProcess = spawn('python', [scriptPath, jsonArgs]);
+                                let outputData = '';
+    
+                                pythonProcess.stdout.on('data', (data) => {
+                                    outputData += data.toString();
+                                });
+    
+                                pythonProcess.stderr.on('data', (data) => {
+                                    console.error('Error executing script:', data.toString());
+                                    reject(data.toString());
+                                });
+    
+                                pythonProcess.on('close', (code) => {
+                                    if (code === 0) {
+                                        try {
+                                            const parsedData = JSON.parse(outputData);
+                                            resolve(parsedData);
+                                        } catch (error) {
+                                            console.error("Error parsing predicted JSON:", error);
+                                            reject(error);
+                                        }
+                                    } else {
+                                        console.error(`Script exited with code ${code}`);
+                                        reject(`Script exited with code ${code}`);
+                                    }
+                                });
+                            })
+                        } catch (error) {
+                            console.error("Error in predictedDataPromise:", error);
+                        }
+                        console.log(predictedData)
+    
+                        if (predictedData !== null) {
+                            try {
+                                await admin.database().ref(`Prediction DCW/${year}/${week}/${administrativeAreaLevel1}/${locality}/${route}/${dayName}`).set({
+                                    prediction: predictedData[0]
+                                });
+                            }
+                            catch (error) {
+                                console.error("Predicted Data not updated, database error: ", error)
+                            }
+                        } else {
+                            console.log("Prediction python script failed execution, no prediction data")
+                        }
+                    } else {
+                        console.log("Weather data not found")
                     }
-                } else {
-                    predictedData = null
-                    console.log("Weather data not found, Internal server error")
+                } catch (error) {
+                    console.error("Prediction Process Fail: ", error)
                 }
 
             } else {
@@ -171,7 +225,7 @@ router.post('/getPrediction', async (req, res) => {
             try {
                 const imgsnapshot = await admin
                     .database()
-                    .ref(`Image Reports/${year}/${week}/${administrativeAreaLevel1}/${locality}/${newsublocalityLevel1}`)
+                    .ref(`Image Reports/${year}/${week}/${administrativeAreaLevel1}/${locality}/${route}`)
                     .once('value');
             
                 const img_url = []
@@ -183,10 +237,11 @@ router.post('/getPrediction', async (req, res) => {
                 if (imgsnapshot.exists()) {
                     imgsnapshot.forEach(img => {
                         const imageData = img.val();
-                        if (imageData.imageStatus === true) {
+                        if (imageData.imageStatus === "VALID") {
                             num_habitat++
                             total_detected_object += imageData.detectedObjects
-                            imgArray.push(imageData.imageUrl)
+                            img_url.push(imageData.imageUrl)
+                            img_item.push(imageData)
                         }
                     });
                 }
@@ -210,6 +265,7 @@ router.post('/getPrediction', async (req, res) => {
                     num_habitat: num_habitat, 
                     total_detected_object: total_detected_object, 
                     img_url: img_url,
+                    img_item: img_item,
                     predictedData: predictedData
                 })
             } catch (error) {

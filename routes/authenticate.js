@@ -115,39 +115,69 @@ router.post('/accountsignup', async (req, res) => {
 
             const apiKey = 'AIzaSyApYzXx3126zpxJdnRSxo7r1EGZQbR2lG8';
             // const apiUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`;
-            const apiUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${long}&key=${apiKey}`;
+            const latlongapiUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${long}&key=${apiKey}`;
 
-            axios.get(apiUrl)
-            .then(response => {
+            let formatted_address
+            try {
+                const response = await axios.get(latlongapiUrl);
                 const results = response.data.results;
+
                 if (results && results.length > 0) {
-                    const country = getAddressComponent("country", response.data)
-
-                    if (country === "Malaysia") {
-                        const administrativeAreaLevel1 = getAddressComponent("administrative_area_level_1", response.data);
-                        const locality = getAddressComponent("locality", response.data);
-                        console.log(locality)
-                        const sublocalityLevel1 = getAddressComponent("sublocality_level_1", response.data);
-        
-                        if (regionKey === "Wilayah Persekutuan Kuala Lumpur" || regionKey === "Federal Territory of Kuala Lumpur") {
-                            regionKey = "Kuala Lumpur";
-                        }                        
-                        const databaseRef = admin.database().ref(`Location/${administrativeAreaLevel1}/${locality}`).set({
-                            name: locality
-                        });
-                    }
-                    else {
-                        console.log("We only support Malaysia location.")
-                    }
+                    formatted_address = results[0].formatted_address
                 } else {
-                    console.error('No results found for the given address.');
+                    console.error('No results found for the given location.');
                 }
-            })
-            .catch(error => {
+            } catch (error) {
                 console.error('Error fetching data from Google Maps API:', error.message);
-            });
-            console.log('Database updated successfully.');
+            }
 
+            if (formatted_address) {
+                const addrapiUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(formatted_address)}&key=${apiKey}`;
+                try {
+                    const response = await axios.get(addrapiUrl)
+                    const results = response.data.results
+
+                    if (results && results.length > 0) {
+                        const country = getAddressComponent("country", response.data)
+    
+                        if (country === "Malaysia") {
+                            let administrativeAreaLevel1 = getAddressComponent("administrative_area_level_1", response.data);
+                            let locality = getAddressComponent("locality", response.data);
+                            let route = getAddressComponent("route", response.data);
+                            let newlat = results[0].geometry.location.lat
+                            let newlong = results[0].geometry.location.lng
+            
+                            if (administrativeAreaLevel1 === "Wilayah Persekutuan Kuala Lumpur" || administrativeAreaLevel1 === "Federal Territory of Kuala Lumpur") {
+                                administrativeAreaLevel1 = "Kuala Lumpur";
+                            }
+
+                            if (route === null) {
+                                let sublocality = getAddressComponent("sublocality_level_1", response.data)
+                                if (sublocality !== null) {
+                                    route = sublocality
+                                } else {
+                                    route = locality
+                                }
+                            }
+                            
+                            const databaseRef = admin.database().ref(`Location/${administrativeAreaLevel1}/${locality}/${route}`).set({
+                                name: formatted_address,
+                                coordinateBU: `${newlat}, ${newlong}`
+                            });
+                            console.log('Database updated successfully.');
+                        }
+                        else {
+                            console.log("We only support Malaysia location.")
+                        }
+                    } else {
+                        console.error('No results found for the given address.');
+                    }
+                } catch (error) {
+                    console.error('Error fetching data from Google Maps API:', error.message);
+                }
+            } else {
+                console.error('No results found for the given coordinates.');
+            }
         } else if ((role === 'superadmin' || role === 'admin') && req.body.uid) {
             const reqemail = req.body.reqemail
 

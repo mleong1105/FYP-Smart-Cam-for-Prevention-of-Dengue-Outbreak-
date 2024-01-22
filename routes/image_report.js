@@ -41,7 +41,7 @@ router.post('/addImageReport', upload.single('file'), async (req, res) => {
             const [latStr, longStr] = coordinates.split(', ');
             const lat = parseFloat(latStr);
             const long = parseFloat(longStr);
-            let formatAddr, administrativeAreaLevel1, locality, sublocalityLevel1, country
+            let formatAddr, administrativeAreaLevel1, locality, route, country
 
             const apiKey = 'AIzaSyApYzXx3126zpxJdnRSxo7r1EGZQbR2lG8';
             const apiUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${long}&key=${apiKey}`;
@@ -54,13 +54,18 @@ router.post('/addImageReport', upload.single('file'), async (req, res) => {
                     country = getAddressComponent("country", response.data);
                     administrativeAreaLevel1 = getAddressComponent("administrative_area_level_1", response.data);
                     locality = getAddressComponent("locality", response.data);
-                    sublocalityLevel1 = getAddressComponent("sublocality_level_1", response.data);
+                    route = getAddressComponent("route", response.data)
 
                     if (administrativeAreaLevel1 === "Wilayah Persekutuan Kuala Lumpur" || "Federal Territory of Kuala Lumpur") {
                         administrativeAreaLevel1 = "Kuala Lumpur";
                     }
-                    if (sublocalityLevel1 == null) {
-                        sublocalityLevel1 = locality
+                    if (route === null) {
+                        let sublocalityLevel1 = getAddressComponent("sublocality_level_1", response.data);
+                        if (sublocalityLevel1 !== null) {
+                            route = sublocalityLevel1
+                        } else {
+                            route = locality
+                        }
                     }
                     valueNull = false;
                 } else {
@@ -74,7 +79,6 @@ router.post('/addImageReport', upload.single('file'), async (req, res) => {
 
             pythonProcess.stdout.on('data', (data) => {
                 const output = data.toString().trim();
-                console.log(`Python script output: ${output}`);
 
                 const matchObjects = output.match(/Number of detected objects: (\d+)/);
                 numObjects = matchObjects ? parseInt(matchObjects[1]) : null;
@@ -84,12 +88,11 @@ router.post('/addImageReport', upload.single('file'), async (req, res) => {
             });
 
             pythonProcess.stderr.on('data', (data) => {
-                console.error(`Python script error: ${data}`);
+                console.log(`Python script proc: ${data}`);
             });
 
             pythonProcess.on('close', (code) => {
                 console.log(`Python script exited with code ${code}`);
-
                 if (imageUrl) {
                     const currentTime = admin.database.ServerValue.TIMESTAMP;
                     const imageStatus = numObjects > 0;
@@ -101,7 +104,7 @@ router.post('/addImageReport', upload.single('file'), async (req, res) => {
                         updaterUid: userId,
                         updateTime: currentTime,
                         detectedObjects: numObjects,
-                        imageStatus: imageStatus,
+                        imageStatus: imageStatus ? "VALID" : "INVALID",
                         manualAnnotationStatus: manualAnnotationStatus,
                         // manualAnnotatedImageUrl: "NO_URL",
                         // manualAnnotatedTime: "NO_TIME",
@@ -109,7 +112,7 @@ router.post('/addImageReport', upload.single('file'), async (req, res) => {
                     };
 
                     new Promise((resolve, reject) => {
-                        const updateRef = admin.database().ref(`Image Reports/${administrativeAreaLevel1}/${locality}/${sublocalityLevel1}`).push();
+                        const updateRef = admin.database().ref(`Image Reports/${administrativeAreaLevel1}/${locality}/${route}`).push();
                         updateRef.set(updateData, (error) => {
                             if (error) {
                                 reject(error);
