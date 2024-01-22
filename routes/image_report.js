@@ -56,7 +56,7 @@ router.post('/addImageReport', upload.single('file'), async (req, res) => {
                     locality = getAddressComponent("locality", response.data);
                     route = getAddressComponent("route", response.data)
 
-                    if (administrativeAreaLevel1 === "Wilayah Persekutuan Kuala Lumpur" || "Federal Territory of Kuala Lumpur") {
+                    if (administrativeAreaLevel1 === "Wilayah Persekutuan Kuala Lumpur" || administrativeAreaLevel1 === "Federal Territory of Kuala Lumpur") {
                         administrativeAreaLevel1 = "Kuala Lumpur";
                     }
                     if (route === null) {
