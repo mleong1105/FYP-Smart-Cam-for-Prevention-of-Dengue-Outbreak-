@@ -128,7 +128,7 @@ async function scrapeWeatherData(dayIndex, regionName, locationName, routeName, 
         } catch (error) {
           console.error('Error fetching data from Google Maps API:', error.message);
         }
-
+        console.log(resLocationName, routeName, route)
         regionContainsPart = administrativeAreaLevel1 === regionName;
         locationContainsPart = locality === locationName;
         routeContainsPart = route === routeName;
@@ -136,7 +136,7 @@ async function scrapeWeatherData(dayIndex, regionName, locationName, routeName, 
 
       let isExactLocation = weatherstatus ? regionContainsPart && locationContainsPart && routeContainsPart : true
 
-      if (isExactLocation) {
+      if (isExactLocation || true) {
         let maxday;
         if (dayIndex < 3) {
           maxday = 2;

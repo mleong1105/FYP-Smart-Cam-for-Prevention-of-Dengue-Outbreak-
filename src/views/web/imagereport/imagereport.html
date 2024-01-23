@@ -62,7 +62,7 @@
             </div>
         </div>
     </div>
-    <div class="modal fade" id="viewImgReportModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+    <div class="modal fade" id="annotationModal" tabindex="-1" aria-labelledby="annotationModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
@@ -161,7 +161,14 @@
                             item.route,
                             item.imageStatus,
                             item.updateTime,
-                            `<button type="button" class="btn btn-primary" data-imgReportId="${item.imgReportId}" data-bs-toggle="modal" data-bs-target="#viewImgReportModal">View Info</button>`
+                            `<div class="row">
+                                <div class="col-12 mb-1">
+                                    <button type="button" class="btn btn-primary btn-sm" data-imgReportId="${item.imgReportId}" data-bs-toggle="modal" data-bs-target="#viewImgReportModal">View Info</button>
+                                </div>
+                                <div class="col-12">
+                                    <button type="button" class="btn btn-success btn-sm" data-imgReportId="${item.imgReportId}" data-bs-toggle="modal" data-bs-target="#annotationModal">Annotation</button>
+                                </div>
+                            </div>`
                         ]).draw(false);
                     });
                 },
