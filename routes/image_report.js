@@ -6,6 +6,7 @@ const path = require('path');
 const multer = require('multer');
 const axios = require('axios')
 const moment = require('moment-timezone');
+const {checkAdminRole} = require('../middleware/checkadmin.js')
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
@@ -16,6 +17,7 @@ router.post('/addImageReport', upload.single('file'), async (req, res) => {
         const coordinates = req.body.coordinates;
         const userId = req.body.userId;
         const userRole = req.body.userRole;
+        const email = req.body.email;
 
         if (!location || !userRole || !userId || !coordinates) {
             console.log(location, coordinates, userId, userRole)
@@ -97,7 +99,7 @@ router.post('/addImageReport', upload.single('file'), async (req, res) => {
                 if (imageUrl) {
                     const timeZone = 'Asia/Kuala_Lumpur';
 
-                    const currentTime = moment().tz(timezone).format();
+                    const currentTime = moment().tz(timeZone).format();
                     const serverTimestamp = admin.database.ServerValue.TIMESTAMP;
                     const imageStatus = numObjects > 0;
                     const manualAnnotationStatus = !imageStatus;
@@ -106,6 +108,7 @@ router.post('/addImageReport', upload.single('file'), async (req, res) => {
                         coordinates: coordinates,
                         imageUrl: imageUrl,
                         updaterUid: userId,
+                        updaterEmail: email,
                         serverTimestamp: serverTimestamp,
                         currentTime: currentTime,
                         detectedObjects: numObjects,
@@ -166,5 +169,51 @@ function getAddressComponent(type, addressDetails) {
     const result = addressDetails.results[0].address_components.find(component => component.types.includes(type));
     return result ? result.long_name : null;
 }
+
+router.post('/getImgReport', checkAdminRole, async (req, res) => {
+    try {
+        const imgRef = await admin.database().ref(`Image Reports`).once('value');
+        if (imgRef.exists()) {
+            const imgVal = imgRef.val();
+            const resArray = []
+            for (const region in imgVal) {
+                if (imgVal.hasOwnProperty(region)) {   
+
+                for (const locality in imgVal[region]) {
+                    if (imgVal[region].hasOwnProperty(locality)) {     
+
+                    for (const route in imgVal[region][locality]) {
+                        if (imgVal[region][locality].hasOwnProperty(route)) {
+
+                        for (const imgReportId in imgVal[region][locality][route]) {
+                            if (imgVal[region][locality][route].hasOwnProperty(imgReportId)) {
+                                const values = imgVal[region][locality][route][imgReportId];
+                                const objList = {
+                                    updaterEmail: values.updaterEmail,
+                                    imgReportId: imgReportId,
+                                    region: region,
+                                    locality: locality,
+                                    route: route,
+                                    imageStatus: values.imageStatus,
+                                    updateTime: values.currentTime,
+                                }
+
+                                resArray.push(objList)
+                            }
+                        }   
+                        }
+                    }
+                    }
+                }
+                }
+            }
+            res.status(200).json({ status: 'success', tabledata: resArray });
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ status: 'error', message: 'Internal server error' });
+    }
+});
+
 
 module.exports = router;

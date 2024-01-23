@@ -70,7 +70,6 @@ async function scrapeWeatherData(dayIndex, regionName, locationName, routeName, 
       resLocationName = resLocationData.name;
       weatherstatus = true;
     } catch (error) {
-      console.error(error);
       weatherstatus = false;
     }
 
@@ -78,7 +77,7 @@ async function scrapeWeatherData(dayIndex, regionName, locationName, routeName, 
       const backupurl = `https://api.tomorrow.io/v4/weather/forecast?location=${encodeURIComponent(routecoord)}&timesteps=1d&units=metric&apikey=0JFemnJdgenKylKTrhuIKnHt99uvXoC1`;
   
       try {
-        const response = await fetch(url, options);
+        const response = await fetch(backupurl, options);
         resData = await response.json();
   
         console.log("Getting data from outsource");
