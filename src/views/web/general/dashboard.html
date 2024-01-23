@@ -62,18 +62,31 @@
     </body>
 
     <script src="/VENDOR/BS/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
     <script>
       fetch('/navbar')
-        .then(response => response.text())
-        .then(data => {
-          const navbarContainer = document.getElementById('navbarContainer');
-          navbarContainer.innerHTML = data;
-          const navbarScript = document.createElement('script');
-          navbarScript.src = "/VENDOR/MosquitoShield/js/navbar.js";
-          document.body.appendChild(navbarScript);
-        })
-        .catch(error => {
-          console.error('Error:', error);
-        });
+            .then(response => response.text())
+            .then(data => {
+                const navbarContainer = document.getElementById('navbarContainer');
+                navbarContainer.innerHTML = data;
+                const navbarScript = document.createElement('script');
+                navbarScript.src = "/VENDOR/MosquitoShield/js/navbar.js";
+                document.body.appendChild(navbarScript);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+
+        fetch('/api/userSession')  // Update the endpoint to the one you use
+            .then(response => response.json())
+            .then(data => {
+                const createAdminBtn = document.getElementById('createAdminBtn');
+                if (data.userRole !== 'superadmin') {
+                    createAdminBtn.remove();
+                }
+            })
+            .catch(error => console.error('Error fetching user information:', error));
+      
+      
     </script>
 </html>

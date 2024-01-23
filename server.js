@@ -26,7 +26,14 @@ app.use(
     session({
       secret: process.env.SESSION_SECRET,
       resave: false,
-      saveUninitialized: true
+      saveUninitialized: true,
+      proxy: true,
+      cookie: {
+        // httpOnly: true,
+        // secure: true,
+        // sameSite: 'none',
+        maxAge: 1000 * 60 * 60 * 24,
+      }
     })
 );
 app.use(checkSession);
@@ -66,19 +73,22 @@ app.get('/navbar', function(req, res) {
 })
 
 app.get('/login', function(req, res) {
-    res.show('general/login.html');
+    if (req.isAuthenticated) {
+        return res.redirect('/dashboard')
+    }
+    return res.show('general/login.html');
 })
 
 app.get('/dashboard', function(req, res) {
     res.show('general/dashboard.html');
 })
 
-app.get('/resourcemanage', function(req, res) {
-    res.show('resourcemanage/resourcemanage.html');
+app.get('/usermanagement', function(req, res) {
+    res.show('usermanagement/usermanagement.html');
 })
 
-app.get('/dronemanage', function(req, res) {
-    res.show('dronemanage/dronemanage.html');
+app.get('/imagereport', function(req, res) {
+    res.show('imagereport/imagereport.html');
 })
 
 app.get('/api/time', (req, res) => {
@@ -102,7 +112,52 @@ app.use('/api/predictionDcWeather', require('./routes/prediction_dc_weather.js')
 
 app.use('/api/imageReport', require('./routes/image_report'))
 
-// app.use('/api/accountmanage', require('./routes/account_manage'))
+app.use('/api/usermanage', require('./routes/user_manage.js'))
+
+app.get('/api/userSession', function(req, res) {
+    const userId = req.userId;
+    const userRole = req.userRole;
+    const isAuthenticated = req.isAuthenticated
+
+    res.json({ userId, userRole, isAuthenticated });
+});
+
+app.post('/api/userInfo', async(req, res) => {
+    const userId = req.body.userId;
+    try {
+        const snapshot = await admin.database().ref(`Users/${userId}`).once('value');
+        if(snapshot.exists()) {
+            const data = snapshot.val()
+            res.status(200).json({ data });
+        }
+    } catch(error) {
+        res.status(404).json({ error: 'User not found' });
+    }
+});
+
+app.post('/api/signout', (req, res) => {
+    const isAuthenticated = req.isAuthenticated || false;
+  
+    if (!isAuthenticated) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+  
+    admin.auth().revokeRefreshTokens(req.userId)
+      .then(() => {
+        req.session.isAuthenticated = false;
+        req.session.userId = null;
+        req.session.userRole = null;
+        res.status(200).json({ message: 'Signout successful' });
+      })
+      .catch((error) => {
+        console.error('Error during signout:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+      });
+});
+
+app.get('*', function(req, res) {
+    res.redirect('/dashboard');
+});
 
 cron.schedule('0 16 * * *', async () => {
     await weatherDataScrapingJob(admin);

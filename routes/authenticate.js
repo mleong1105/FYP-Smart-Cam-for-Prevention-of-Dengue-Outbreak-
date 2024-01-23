@@ -58,17 +58,19 @@ router.post('/accountloginAP', async (req, res) => {
         // Assuming 'role' is a custom field in the user's profile
         const role = userRecord.customClaims && userRecord.customClaims.role ? userRecord.customClaims.role : "INVALID";
 
-        if (role === 'INVALID' || role !== 'superadmin' || role !== 'admin') {
+        if (role === 'INVALID' || ( role !== 'superadmin' && role !== 'admin')) {
             res.status(401).json({ status: 'failure', message: 'Invalid account role' });
             return;
         }
 
         const userCredential = await firebase.signInWithEmailAndPassword(firebase.getAuth(), email, password)
         const user = userCredential.user;
+        const uid = user.uid;
 
         // Authentication successful
         req.session.isAuthenticated = true;
         req.session.userRole = role; // Store user role in session
+        req.session.userId = uid
         res.json({ status: 'success', role: role});
     } catch (error) {
         console.error('Error authenticating user:', error);
@@ -93,7 +95,7 @@ router.post('/accountsignup', async (req, res) => {
             return;
         }
 
-        if (role === 'user') {
+        if (role === 'user' || (req.userRole === 'superadmin' && role === 'admin')) {
             const userCredential = await firebase.createUserWithEmailAndPassword(firebase.getAuth(), email, password);
             const user = userCredential.user;
             const userId = user.uid;
@@ -165,39 +167,29 @@ router.post('/accountsignup', async (req, res) => {
                                 coordinateBU: `${newlat}, ${newlong}`
                             });
                             console.log('Database updated successfully.');
+                            return res.json({ status: 'success' });
                         }
                         else {
                             console.log("We only support Malaysia location.")
+                            return res.status(401).json({ status: 'failure', message: 'Only Malaysia Location' });
                         }
                     } else {
                         console.error('No results found for the given address.');
+                        return res.status(402).json({ status: 'failure', message: 'No result found on given address' });
                     }
                 } catch (error) {
                     console.error('Error fetching data from Google Maps API:', error.message);
+                    return res.status(403).json({ status: 'failure', message: 'Error fetching data from Google Maps' });
                 }
             } else {
                 console.error('No results found for the given coordinates.');
+                return res.status(404).json({ status: 'failure', message: 'No result found on coordinates' });
             }
-        } else if ((role === 'superadmin' || role === 'admin') && req.body.uid) {
-            const reqemail = req.body.reqemail
-
-            const pendingAccountId = admin.database().ref('Pending Account').push().key;
-            await admin.database().ref(`Pending Account/${pendingAccountId}`).set({
-                email: email,
-                firstName: firstName,
-                lastName: lastName,
-                birthday: birthday,
-                coordinates: coordinates,
-                role: role,
-                reqemail: reqemail
-            });
-
-            console.log('Pending account added. Waiting for approval.');
         } else {
             console.log('Invalid role for signup account.');
+            return res.status(405).json({ status: 'failure', message: 'Invalid role for signup' });
         }
 
-        res.json({ status: 'success' });
     } catch (error) {
         console.error('Error creating user:', error);
         res.status(500).json({ status: 'error', message: 'Failed to create user' });

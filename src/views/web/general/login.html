@@ -86,7 +86,7 @@
           password: password
         }
         // Send a request to the backend for login authentication
-        fetch('/api/authenticate/accountlogin', {
+        fetch('/api/authenticate/accountloginAP', {
           method: 'POST',
           body: JSON.stringify(credentials),
           headers: {
@@ -120,6 +120,5 @@
       }
     </script>
 
-    <script src="/VENDOR/MosquitoShield/js/navbar.js"></script>
     <script src="/VENDOR/BS/js/bootstrap.bundle.min.js"></script>
 </html>

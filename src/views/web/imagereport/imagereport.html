@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>User Management</title>
+    <link rel="stylesheet" href="/VENDOR/BS/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/VENDOR/BSicon/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/VENDOR/MosquitoShield/css/style.css">
+    <style>
+        #userTable {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyApYzXx3126zpxJdnRSxo7r1EGZQbR2lG8&libraries=places"></script>
+
+</head>
+
+<body>
+    <div class="wrapper">
+        <div id="navbarContainer"></div>
+        <div class="container">
+            <h2 class="container-title pb-5">User Management</h2>
+            <div class="container-content">
+                <div class="form-container mb-5">
+                    <h4>Search User</h4>
+                    <form id="searchUserForm" class="row g-2">
+                        <div class="col-5">
+                            <label for="emailInput" class="form-label">Email</label>
+                            <input type="text" class="form-control" id="emailInput" placeholder="Enter the email">
+                        </div>
+                        <div class="col-3">
+                            <label for="roleInput" class="form-label">Role</label>
+                            <select class="form-select" id="roleInput">
+                                <option value="" disabled>Select Role</option>
+                                <option value="ALL" selected>All</option>
+                                <option value="user">User</option>
+                                <option value="admin">Admin</option>
+                                <option value="superadmin">Superadmin</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="col-1 btn btn-success align-self-end">Search</button>
+                    </form>
+                </div>
+
+                <h4>User List</h4>
+                <div id="userTable" class="table-responsive pt-3">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>First Name</th>
+                                <th>Last Name</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userTableBody">
+                        </tbody>
+                    </table>
+                </div>
+                <div class="d-flex justify-content-end my-3 me-3">
+                    <button type="button" class="btn btn-primary" id="createAdminBtn" data-bs-toggle="modal" data-bs-target="#addAdminModal">Create Admin</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="addAdminModal" tabindex="-1" aria-labelledby="addAdminModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addAdminModalLabel">Add Admin Account</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addAdminForm">
+                        <div class="row">
+                            <div class="col-6 mb-2">
+                                <label for="adminEmailInput" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="adminEmailInput" placeholder="Enter email" required>
+                            </div>
+                            <div class="col-6 mb-2">
+                                <label for="adminPasswordInput" class="form-label">Password</label>
+                                <input type="password" class="form-control" id="adminPasswordInput" placeholder="Enter password" required>
+                            </div>
+                            <div class="col-6 mb-2">
+                                <label for="adminFirstNameInput" class="form-label">First Name</label>
+                                <input type="text" class="form-control" id="adminFirstNameInput" placeholder="Enter first name" required>
+                            </div>
+                            <div class="col-6 mb-2">
+                                <label for="adminLastNameInput" class="form-label">Last Name</label>
+                                <input type="text" class="form-control" id="adminLastNameInput" placeholder="Enter last name" required>
+                            </div>
+                            <div class="col-12 mb-2">
+                                <label for="adminLocationInput" class="form-label">Pick a Location</label>
+                                <div id="map" style="height: 300px;"></div>
+                                <input
+                                    type="hidden"
+                                    id="adminLocationInput"
+                                    name="adminLocationInput"
+                                    required
+                                />
+                            </div>
+                            <div class="col-6 mb-2">
+                                <label for="adminBirthdateInput" class="form-label">Birthdate</label>
+                                <input type="date" class="form-control" id="adminBirthdateInput" required>
+                            </div>
+                        </div>
+                        <div class="modal-footer" style="border-top:none;">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" id="addAdminSubmitButton" class="btn btn-primary">Add Admin</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editUserModalLabel">Edit User Information</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editUserForm">
+                        <input type="hidden" id="editUserIdInput"> <!-- Hidden input for user ID -->
+                        <div class="row">
+                            <div class="col-12 mt-3">
+                                <p class="mb-0"><strong>Email:</strong> <span id="editEmailText"></span><strong style="margin-left: 30px; margin-right: 30px;">|</strong><strong>Role:</strong> <span id="editRoleText"></span></p>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <p class="mb-0"><strong>Location Registered (Coordinates):</strong> <span id="editLocationText"></span></p>
+                            </div>
+                            <div class="col-6 mb-2">
+                                <label for="editFirstNameInput" class="form-label"><strong>First Name</strong></label>
+                                <input type="text" class="form-control" id="editFirstNameInput" placeholder="Enter first name" required>
+                            </div>
+                            <div class="col-6 mb-2">
+                                <label for="editLastNameInput" class="form-label"><strong>Last Name</strong></label>
+                                <input type="text" class="form-control" id="editLastNameInput" placeholder="Enter last name" required>
+                            </div>
+                            <div class="col-6 mb-2">
+                                <label for="editBirthdateInput" class="form-label"><strong>Birthdate</strong></label>
+                                <input type="date" class="form-control" id="editBirthdateInput" required>
+                            </div>
+                        </div>
+                        <div class="modal-footer" style="border-top:none;">
+                            <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" id="editSubmitButton" class="btn btn-sm btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="/VENDOR/BS/js/bootstrap.bundle.min.js"></script>
+    <script>
+        fetch('/navbar')
+            .then(response => response.text())
+            .then(data => {
+                const navbarContainer = document.getElementById('navbarContainer');
+                navbarContainer.innerHTML = data;
+                const navbarScript = document.createElement('script');
+                navbarScript.src = "/VENDOR/MosquitoShield/js/navbar.js";
+                document.body.appendChild(navbarScript);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+
+        fetch('/api/userSession')  // Update the endpoint to the one you use
+            .then(response => response.json())
+            .then(data => {
+                const createAdminBtn = document.getElementById('createAdminBtn');
+                if (data.userRole !== 'superadmin') {
+                    createAdminBtn.remove();
+                }
+            })
+            .catch(error => console.error('Error fetching user information:', error));
+        
+        document.getElementById('editUserModal').addEventListener('hide.bs.modal', function () {
+            document.getElementById('editUserForm').reset();
+            document.getElementById('editEmailText').innerHTML = '';
+            document.getElementById('editRoleText').innerHTML = '';
+            document.getElementById('editLocationText').innerHTML = '';
+        });
+
+        let map;
+        let marker;
+        
+        document.getElementById('addAdminModal').addEventListener('show.bs.modal', function () {
+            map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 15,
+            });
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function (position) {
+                        const currentLocation = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+
+                        map.setCenter(currentLocation);
+
+                        marker = new google.maps.Marker({
+                            position: currentLocation,
+                            map: map,
+                            draggable: true,
+                        });
+
+                        document.getElementById('adminLocationInput').value =
+                            currentLocation.lat + ', ' + currentLocation.lng;
+
+                        google.maps.event.addListener(map, 'click', function (event) {
+                            if (marker) {
+                                marker.setMap(null);
+                            }
+
+                            marker = new google.maps.Marker({
+                                position: event.latLng,
+                                map: map,
+                                draggable: true,
+                            });
+
+                            document.getElementById('adminLocationInput').value = event.latLng.lat() + ', ' + event.latLng.lng();
+                        });
+
+                        google.maps.event.addListener(marker, 'dragend', function (event) {
+                            document.getElementById('adminLocationInput').value = event.latLng.lat() + ', ' + event.latLng.lng();
+                        });
+                    },
+                    function () {
+                        console.log('Error: Unable to retrieve your location.');
+                    }
+                );
+            } else {
+                console.log('Error: Geolocation is not supported by this browser.');
+            }
+        });
+
+        $('#addAdminModal').on('hide.bs.modal', function () {
+            if (map) {
+                google.maps.event.clearListeners(map, 'click');
+            }
+            if (marker) {
+                marker.setMap(null);
+            }
+            document.getElementById('addAdminForm').reset();
+        });
+
+        function searchFormSubmit(event) {
+            event.preventDefault();
+
+            const email = document.getElementById('emailInput').value;
+            const role = document.getElementById('roleInput').value;
+
+            const formData = {
+                email: email,
+                role: role? role : "ALL"
+            };
+
+            fetch('/api/usermanage/searchuser', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success' && data.users && data.users.length > 0) {
+                        updateResourceTable(data.users);
+                    } else if (data.status === 'fail') {
+                        updateResourceTable([]);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+
+        function addAdminFormSubmit(event) {
+            event.preventDefault();
+
+            const adminEmail = document.getElementById('adminEmailInput').value;
+            const adminPassword = document.getElementById('adminPasswordInput').value;
+            const adminFirstName = document.getElementById('adminFirstNameInput').value;
+            const adminLastName = document.getElementById('adminLastNameInput').value;
+            const adminLocation = document.getElementById('adminLocationInput').value;
+            const adminBirthdate = document.getElementById('adminBirthdateInput').value;
+
+            const formData = {
+                email: adminEmail,
+                password: adminPassword,
+                firstName: adminFirstName,
+                lastName: adminLastName,
+                coordinates: adminLocation,
+                birthday: adminBirthdate,
+                role: "admin"
+            };
+
+            const confirmed = window.confirm('Are you sure you want to add the admin?');
+            if (!confirmed) {
+                return;
+            }
+
+            fetch('/api/authenticate/accountsignup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert("Admin Account Added Successfully!");
+                    $('#addAdminModal').modal('hide');
+                } else if (data.status === 'fail') {
+                    alert(`Failed to add admin account: ${data.message}`);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        function updateResourceTable(data) {
+            const tableBody = document.getElementById('userTableBody');
+            tableBody.innerHTML = '';
+
+            if (data.length > 0) {
+                data.forEach((user, index) => {
+                    const row = document.createElement('tr');
+                    const deleteBtn = user.deleteShow
+                        ? `<button class="btn btn-sm btn-danger delete-btn" data-id="${user.userId}" data-role="${user.role}"><i class="bi bi-trash-fill"></i></button>`
+                        : '';
+                    row.innerHTML = `
+                        <td class="index">${index + 1}</td>
+                        <td class="email">${user.email}</td>
+                        <td class="role">${user.role}</td>
+                        <td class="role">${user.firstName}</td>
+                        <td class="role">${user.lastName}</td>
+                        <td class="action">
+                            <button class="btn btn-sm btn-primary edit-btn" data-id="${user.userId}" data-bs-toggle="modal" data-bs-target="#editUserModal" data-email="${user.email}" data-role="${user.role}"
+                                data-firstname="${user.firstName}" data-lastname="${user.lastName}" data-location="${user.location}" data-birthdate="${user.birthdate}">
+                                <i class="bi bi-pencil-fill"></i>
+                            </button>
+                            ${deleteBtn}
+                        </td>
+                    `;
+
+                    tableBody.appendChild(row);
+                });
+
+                const editButtons = document.querySelectorAll('.edit-btn');
+                editButtons.forEach(button => {
+                    button.addEventListener('click', populateEditModal);
+                });
+
+                const deleteButtons = document.querySelectorAll('.delete-btn');
+                deleteButtons.forEach(button => {
+                    button.addEventListener('click', deleteUser);
+                });
+            } else {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="6">No users found.</td>';
+                tableBody.appendChild(row);
+            }
+        }
+
+        function populateEditModal(event) {
+            const editEmailText = document.getElementById('editEmailText');
+            const editRoleText = document.getElementById('editRoleText');
+            const editLocationText = document.getElementById('editLocationText');
+            const editFirstNameInput = document.getElementById('editFirstNameInput');
+            const editLastNameInput = document.getElementById('editLastNameInput');
+            const editBirthdateInput = document.getElementById('editBirthdateInput');
+            const editSubmitButton = document.getElementById('editSubmitButton');
+
+            const target = event.target.closest('button.edit-btn');
+            const userId = target.getAttribute('data-id');
+            const email = target.getAttribute('data-email');
+            const role = target.getAttribute('data-role');
+            const firstName = target.getAttribute('data-firstName');
+            const lastName = target.getAttribute('data-lastName');
+            const location = target.getAttribute('data-location');
+            const birthdate = target.getAttribute('data-birthdate');
+
+            editEmailText.innerHTML = email;
+            editRoleText.innerHTML = role;
+            editLocationText.innerHTML = location;
+            editFirstNameInput.value = firstName;
+            editLastNameInput.value = lastName;
+            editBirthdateInput.value = birthdate;
+            editSubmitButton.setAttribute('data-id', userId);
+        }
+
+        function editFormSubmit(event) {
+            event.preventDefault();
+
+            const userId = document.getElementById('editSubmitButton').getAttribute('data-id');
+            const editFirstName = document.getElementById('editFirstNameInput').value;
+            const editLastName = document.getElementById('editLastNameInput').value;
+            const editBirthdate = document.getElementById('editBirthdateInput').value;
+
+            const formData = {
+                userId: userId,
+                firstName: editFirstName,
+                lastName: editLastName,
+                birthdate: editBirthdate
+            };
+
+            const confirmed = window.confirm('Are you sure you want to save changes?');
+            if (!confirmed) {
+                return;
+            }
+
+            fetch('/api/usermanage/edituser', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert("User information updated successfully!");
+                    $('#editUserModal').modal('hide');
+                } else if (data.status === 'fail') {
+                    alert(`Failed to update user information: ${data.message}`);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        function deleteUser(event) {
+            event.preventDefault();
+
+            const target = event.target.closest('button.delete-btn');
+            const row = event.target.closest('tr');
+            const userId = target.getAttribute('data-id');
+            const role = target.getAttribute('data-role')
+            const confirmed = window.confirm('Are you sure you want to delete the user?');
+            if (!confirmed) {
+                return;
+            }
+
+            const formData = {
+                userId: userId,
+                role: role
+            };
+
+            fetch('/api/usermanage/deleteuser', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert("User Deleted !");
+                        window.location.reload();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchUserForm = document.getElementById('searchUserForm');
+            searchUserForm.addEventListener('submit', searchFormSubmit);
+
+            const editUserForm = document.getElementById('editUserForm');
+            editUserForm.addEventListener('submit', editFormSubmit);
+
+            const addAdminForm = document.getElementById('addAdminForm');
+            addAdminForm.addEventListener('submit', addAdminFormSubmit);
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchUserForm = document.getElementById('searchUserForm');
+
+            const submitEvent = new Event('submit');
+            searchUserForm.dispatchEvent(submitEvent);
+        });
+    </script>
+</body>
+
+</html>

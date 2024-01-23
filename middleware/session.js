@@ -16,6 +16,7 @@ const checkSession = (req, res, next) => {
     return;
   }
 
+  req.isAuthenticated = isAuthenticated
   req.userId = userId;
   req.userRole = userRole;
   // User is authenticated or on the login page, continue to the next middleware or route handler

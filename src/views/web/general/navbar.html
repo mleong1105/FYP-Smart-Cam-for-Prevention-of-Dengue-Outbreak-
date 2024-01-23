@@ -2,7 +2,7 @@
   <a href="/dashboard" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto link-dark text-decoration-none">
     <img src="" class="img-fluid profile-image-pic img-thumbnail rounded-circle my-3" alt="icon">
     <svg class="bi me-2" width="40" height="32"></svg>
-    <span class="fs-6 fw-bold">Welcome, user1</span>
+    <span class="fs-6 fw-bold">Welcome, <span id="usernamePlaceholder"></span></span>
   </a>
   <hr>
   <ul class="nav nav-pills flex-column mb-auto">
@@ -13,13 +13,13 @@
       </a>      
     </li>
     <li class="nav-item"> 
-      <a href="/resourcemanage" class="nav-link link-dark">
+      <a href="/usermanagement" class="nav-link link-dark">
         <i class="bi bi-speedometer2 me-2"></i>
-        <span class="nav-link-text">Resource Management</span>
+        <span class="nav-link-text">User Management</span>
       </a>      
     </li>
     <li class="nav-item"> 
-      <a href="/dronemanage" class="nav-link link-dark">
+      <a href="/imagereport" class="nav-link link-dark">
         <i class="bi bi-speedometer2 me-2"></i>
         <span class="nav-link-text">Drone Device</span>
       </a>      
@@ -38,11 +38,8 @@
       <strong>mdo</strong>
     </a>
     <ul class="dropdown-menu text-small shadow" aria-labelledby="dropdownUser2">
-      <li><a class="dropdown-item" href="#">New project...</a></li>
-      <li><a class="dropdown-item" href="#">Settings</a></li>
-      <li><a class="dropdown-item" href="#">Profile</a></li>
-      <li><hr class="dropdown-divider"></li>
-      <li><a class="dropdown-item" href="#">Sign out</a></li>
+      <li><a class="dropdown-item" id="signOutLink">Sign out</a></li>
     </ul>
   </div>
 </div>
+
