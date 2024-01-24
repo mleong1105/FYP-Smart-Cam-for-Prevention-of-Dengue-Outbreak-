@@ -12,6 +12,7 @@ const timeZone = 'Asia/Kuala_Lumpur';
 
 router.post('/getPrediction', async (req, res) => {
     try {
+        console.log("Start get prediction API")
         const location = req.body.location
         const [latStr, longStr] = location.split(', ');
         const lat = parseFloat(latStr);
@@ -127,7 +128,7 @@ router.post('/getPrediction', async (req, res) => {
                             const locAttr = locCandidates.attributes
                             const locExtent = locCandidates.extent
                             
-                            if (route === locAttr.StAddr || route === locAttr.City || route === locAttr.Subregion || route === locAttr.District || route === locAttr.MetroArea) {
+                            if (route === locAttr.StAddr || route === locAttr.City || route === locAttr.Subregion || route === locAttr.District || route === locAttr.MetroArea || true) {
                                 try {
                                     const Xmin = locExtent.xmin
                                     const Xmax = locExtent.xmax
@@ -238,6 +239,7 @@ router.post('/getPrediction', async (req, res) => {
             
                 const img_url = []
                 const img_item = []
+                let preventionS
                 let status = 1
                 let num_habitat = 0
                 let total_detected_object = 0
@@ -253,7 +255,7 @@ router.post('/getPrediction', async (req, res) => {
                         }
                     });
                 }
-
+                
                 if (predictedData["Predicted Dengue Cases"] > 5) {
                     status = 3
                 }
@@ -264,11 +266,26 @@ router.post('/getPrediction', async (req, res) => {
                     status = 1
                 }
 
-                if (total_detected_object > 15 || (total_detected_object > 5 && status == 1)) {
+                if (total_detected_object > 10 || (total_detected_object > 5 && status == 1)) {
                     status++
+                    preventionS = "2"
+                } else {
+                    preventionS = "1"
                 }
+
+                if (status === 1) {
+                    preventionS = "l" + preventionS
+                } else if (status === 2) {
+                    preventionS = "m" + preventionS
+                } else if (status === 3) {
+                    preventionS = "h" + preventionS
+                } else {
+                    preventionS = "INVALID"
+                }
+                
                 res.status(200).json({ 
                     status: status, 
+                    preventionS: preventionS,
                     caution_habitat: num_habitat > 0 ? true:false, 
                     num_habitat: num_habitat, 
                     total_detected_object: total_detected_object, 
