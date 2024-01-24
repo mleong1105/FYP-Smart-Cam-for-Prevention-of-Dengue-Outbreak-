@@ -269,6 +269,8 @@ router.post('/getPrediction', async (req, res) => {
                 if (total_detected_object > 10 || (total_detected_object > 5 && status == 1)) {
                     status++
                     preventionS = "2"
+                } else if (total_detected_object > 0 && status == 1) {
+                    preventionS = "2"
                 } else {
                     preventionS = "1"
                 }
